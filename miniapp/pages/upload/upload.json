@@ -1,0 +1,6 @@
+{
+  "usingComponents": {
+    "category-picker": "/components/category-picker/category-picker"
+  },
+  "navigationBarTitleText": "上传"
+}

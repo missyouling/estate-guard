@@ -1,0 +1,14 @@
+.container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40rpx; }
+.card { width: 100%; max-width: 600rpx; padding: 50rpx 40rpx; border-radius: 30rpx; }
+.title { font-size: 36rpx; font-weight: 700; text-align: center; display: block; }
+.subtitle { font-size: 24rpx; color: #86868B; text-align: center; display: block; margin: 8rpx 0 30rpx; }
+.input { padding: 24rpx; background: rgba(255,255,255,0.8); border-radius: 14rpx; margin-bottom: 16rpx; font-size: 28rpx; text-align: center; }
+.btn { background: #007AFF; color: #fff; border-radius: 14rpx; font-size: 30rpx; font-weight: 500; margin-top: 10rpx; }
+.btn::after { border: none; }
+.success-msg { background: #F0FFF4; color: #34C759; font-size: 24rpx; padding: 16rpx; border-radius: 10rpx; text-align: center; margin-bottom: 16rpx; }
+.upload-deed { border: 4rpx dashed rgba(0,0,0,0.1); border-radius: 14rpx; padding: 40rpx; text-align: center; font-size: 26rpx; color: #86868B; margin-bottom: 16rpx; }
+.deed-ok { color: #34C759; font-weight: 500; }
+.msg { font-size: 24rpx; padding: 16rpx; border-radius: 10rpx; text-align: center; margin-top: 20rpx; }
+.msg.info { background: #F0F4FF; color: #007AFF; }
+.msg.error { background: #FFF1F0; color: #FF3B30; }
+.msg.success { background: #F0FFF4; color: #34C759; }

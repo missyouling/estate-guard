@@ -1,0 +1,32 @@
+<view class="container">
+  <view class="card glass">
+    <text class="title">业主注册</text>
+    <text class="subtitle">{{step==='check'?'请验证身份信息':step==='whitelist'?'白名单匹配成功':step==='manual'?'请提交房产证审核':''}}</text>
+
+    <input class="input" placeholder="姓名 *" value="{{name}}" bindinput="onField" data-field="name" />
+    <input class="input" placeholder="身份证号 *" value="{{idCard}}" bindinput="onField" data-field="idCard" maxlength="18" />
+    <input class="input" placeholder="手机号 *" value="{{phone}}" bindinput="onField" data-field="phone" maxlength="11" />
+
+    <block wx:if="{{step==='whitelist'}}">
+      <view class="success-msg">验证通过，请设置密码</view>
+      <input class="input" type="password" placeholder="设置密码 (至少6位) *" value="{{password}}" bindinput="onField" data-field="password" />
+      <button class="btn" bindtap="registerWhitelist" loading="{{loading}}">确认注册</button>
+    </block>
+
+    <block wx:if="{{step==='manual'}}">
+      <input class="input" placeholder="电子邮箱 (可选, 接收审核通知)" value="{{email}}" bindinput="onField" data-field="email" />
+      <input class="input" placeholder="房号 * 如: 1栋2单元301" value="{{roomNumber}}" bindinput="onField" data-field="roomNumber" />
+      <view class="upload-deed" bindtap="uploadDeed">
+        <text wx:if="{{!deedPath}}">点击上传房产证/购房合同 *</text>
+        <text wx:else class="deed-ok">✓ {{deedName}}</text>
+      </view>
+      <button class="btn" bindtap="submitManual" loading="{{loading}}">提交审核</button>
+    </block>
+
+    <block wx:if="{{step==='check'}}">
+      <button class="btn" bindtap="checkWhitelist" loading="{{loading}}">验证身份</button>
+    </block>
+
+    <view wx:if="{{msg}}" class="msg {{msgType}}">{{msg}}</view>
+  </view>
+</view>

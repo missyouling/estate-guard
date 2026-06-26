@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --radius: 0.625rem;
+  --background: #ffffff;
+  --foreground: oklch(0.18 0 0);
+  --card: oklch(0.99 0 0);
+  --card-foreground: oklch(0.18 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.56 0 0);
+  --accent: oklch(0.96 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0 0);
+  --ring: oklch(0.65 0 0);
+  --sidebar: #f8f8f8;
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+}
+
+.dark {
+  --background: oklch(0.18 0 0);
+  --foreground: oklch(0.88 0 0);
+  --card: oklch(0.28 0 0);
+  --card-foreground: oklch(0.88 0 0);
+  --primary: oklch(0.78 0.05 255);
+  --primary-foreground: oklch(0.12 0 0);
+  --secondary: oklch(0.24 0 0);
+  --secondary-foreground: oklch(0.88 0 0);
+  --muted: oklch(0.24 0 0);
+  --muted-foreground: oklch(0.77 0 0);
+  --accent: oklch(0.18 0 0);
+  --accent-foreground: oklch(0.88 0 0);
+  --destructive: oklch(0.7 0.2 22.216);
+  --border: oklch(0.34 0 0);
+  --ring: oklch(0.62 0 0);
+  --sidebar: oklch(0.18 0 0);
+  --sidebar-foreground: oklch(0.88 0 0);
+  --sidebar-primary: oklch(0.78 0.05 255);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.18 0 0);
+  --sidebar-accent-foreground: oklch(0.88 0 0);
+  --sidebar-border: oklch(0.26 0 0);
+}
+
+select {
+  color-scheme: light;
+}
+
+.dark select {
+  color-scheme: dark;
+}
+
+html {
+  font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--foreground);
+  background-color: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  color: var(--foreground);
+  background-color: var(--background);
+}
+
+input, select, textarea {
+  color: var(--foreground);
+  background-color: var(--background);
+}
+
+.dark input, .dark select, .dark textarea {
+  color-scheme: dark;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-modal-enter {
+  animation: modalEnter 0.2s ease-out;
+}
+
+.animate-modal-leave {
+  animation: modalLeave 0.15s ease-in forwards;
+}
+
+@keyframes modalEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalLeave {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.animate-modal-content-enter {
+  animation: modalContentEnter 0.2s ease-out;
+}
+
+.animate-modal-content-leave {
+  animation: modalContentLeave 0.15s ease-in forwards;
+}
+
+@keyframes modalContentEnter {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes modalContentLeave {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to { opacity: 0; transform: scale(0.95) translateY(10px); }
+}
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
+
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 10px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+.dark *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+.dark *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+* { scrollbar-color: rgba(0,0,0,0.12) transparent; scrollbar-width: thin; }
+.dark * { scrollbar-color: rgba(255,255,255,0.12) transparent; }
+
+/* Custom range slider */
+input[type=range] { -webkit-appearance: none; appearance: none; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 10px; background: var(--muted); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary); margin-top: -5px; border: 2px solid var(--background); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+input[type=range]::-moz-range-track { height: 6px; border-radius: 10px; background: var(--muted); border: none; }
+input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--primary); border: 2px solid var(--background); box-shadow: 0 1px 3px rgba(0,0,0,0.2); cursor: pointer; }
+.dark input[type=range]::-webkit-slider-thumb { border-color: oklch(0.28 0 0); }
+.dark input[type=range]::-moz-range-thumb { border-color: oklch(0.28 0 0); }
+
+table.app-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+table.app-table thead { position: sticky; top: 0; z-index: 1; }
+table.app-table thead tr { background-color: var(--muted); }
+table.app-table thead tr:hover { background-color: var(--muted); }
+.dark table.app-table thead tr { background-color: oklch(0.22 0 0); }
+table.app-table th { height: 2.5rem; padding: 0 0.75rem; text-align: left; vertical-align: middle; font-weight: 500; white-space: nowrap; color: var(--muted-foreground); font-size: 0.75rem; }
+table.app-table td { padding: 0.625rem 0.75rem; vertical-align: middle; font-size: 0.875rem; color: var(--foreground); }
+table.app-table tr { border-bottom: 1px solid var(--border); transition: background-color 0.15s; }
+table.app-table tbody tr:hover { background-color: var(--muted); }
+table.app-table tbody tr:last-child { border-bottom: none; }
+table.app-table td.font-mono { font-family: ui-monospace, monospace; font-size: 0.75rem; }
+table.app-table td.text-right { text-align: right; }

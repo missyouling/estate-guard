@@ -1,0 +1,7 @@
+<view class="card" bindtap="onTap">
+  <image wx:if="{{type==='image'}}" src="{{thumbnail||src}}" mode="aspectFill" lazy-load></image>
+  <view wx:else class="placeholder">
+    <text>{{type==='video'?'▶':'♪'}}</text>
+  </view>
+  <view class="badge" wx:if="{{recordNo}}">NO.{{recordNo}}</view>
+</view>

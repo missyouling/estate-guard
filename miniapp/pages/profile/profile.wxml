@@ -1,0 +1,35 @@
+<view class="container">
+  <view class="user-card glass">
+    <view class="avatar">{{userName[0]||'?'}}</view>
+    <view class="user-info">
+      <text class="uname">{{userName}}</text>
+      <text class="urole">{{role==='admin'?'管理员':'业主'}}</text>
+      <text class="uphone" wx:if="{{userPhone}}">{{userPhone}}</text>
+      <text class="uroom" wx:if="{{userRoom}}">{{userRoom}}</text>
+    </view>
+  </view>
+
+  <view class="stats-card glass">
+    <view class="stat">
+      <text class="stat-num">{{stats.total}}</text>
+      <text class="stat-lbl">总上传</text>
+    </view>
+    <view class="stat">
+      <text class="stat-num">{{stats.images}}</text>
+      <text class="stat-lbl">图片</text>
+    </view>
+    <view class="stat">
+      <text class="stat-num">{{stats.videos}}</text>
+      <text class="stat-lbl">视频</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">修改密码</view>
+    <input class="input" type="password" placeholder="当前密码" value="{{oldPwd}}" bindinput="onOldPwd" />
+    <input class="input" type="password" placeholder="新密码 (至少6位)" value="{{newPwd}}" bindinput="onNewPwd" />
+    <button class="btn" bindtap="changePwd">确认修改</button>
+  </view>
+
+  <button class="logout-btn" bindtap="handleLogout">退出登录</button>
+</view>

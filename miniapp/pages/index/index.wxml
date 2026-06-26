@@ -1,0 +1,55 @@
+<view class="container">
+  <view class="header glass-nav">
+    <text class="title">照片墙</text>
+    <view class="tabs">
+      <text class="tab {{viewMode==='grid'?'active':''}}" bindtap="switchView" data-mode="grid">平铺</text>
+      <text class="tab {{viewMode==='list'?'active':''}}" bindtap="switchView" data-mode="list">列表</text>
+      <text class="tab {{viewMode==='time'?'active':''}}" bindtap="switchView" data-mode="time">时间轴</text>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading">加载中...</view>
+
+  <view wx:elif="{{mediaList.length===0}}" class="empty">
+    <text class="empty-text">暂无照片</text>
+    <text class="empty-hint" bindtap="goUpload">去上传第一张 →</text>
+  </view>
+
+  <view wx:else class="content">
+    <view wx:if="{{viewMode==='grid'}}" class="grid-view">
+      <view class="grid-cell" wx:for="{{mediaList}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+        <image wx:if="{{item.type==='image'}}" src="{{item.thumbnail_url||item.url}}" mode="aspectFill" lazy-load></image>
+        <view wx:else class="video-placeholder">
+          <text class="icon">▶</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{viewMode==='list'}}" class="list-view">
+      <view class="list-item" wx:for="{{mediaList}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+        <image wx:if="{{item.type==='image'}}" src="{{item.thumbnail_url||item.url}}" mode="aspectFill"></image>
+        <view wx:else class="list-video-holder">▶</view>
+        <view class="list-info">
+          <text class="list-name">NO.{{item.record_no}} {{item.original_name}}</text>
+          <text class="list-meta">{{item.category_name}} · {{item.uploaded_at}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{viewMode==='time'}}" class="time-view">
+      <block wx:for="{{timeline}}" wx:key="date">
+        <view class="time-header">{{item.date}}</view>
+        <view class="time-items">
+          <view class="time-item" wx:for="{{item.items}}" wx:for-item="m" wx:key="id" bindtap="goDetail" data-id="{{m.id}}">
+            <image wx:if="{{m.type==='image'}}" src="{{m.thumbnail_url||m.url}}" mode="aspectFill"></image>
+            <view class="time-item-info">
+              <text class="ellipsis">{{m.original_name}}</text>
+              <text class="time-meta">NO.{{m.record_no}}</text>
+            </view>
+            <text class="time-clock">{{m.uploaded_at}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+  </view>
+</view>

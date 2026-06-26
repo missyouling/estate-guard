@@ -1,0 +1,10 @@
+<view class="picker-shell" bindtap="show">
+  <text class="label">{{selected||'选择分类'}}</text>
+  <text class="arrow">▾</text>
+</view>
+<view class="overlay" wx:if="{{open}}" bindtap="close"></view>
+<view class="dropdown" wx:if="{{open}}">
+  <view class="item" wx:for="{{list}}" wx:key="id" bindtap="select" data-id="{{item.id}}" data-name="{{item.name}}">
+    {{item.name}}
+  </view>
+</view>

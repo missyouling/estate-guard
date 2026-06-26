@@ -1,0 +1,26 @@
+.container { padding: 20rpx 30rpx 40rpx; }
+.section { margin-bottom: 30rpx; }
+.section-title { font-size: 26rpx; font-weight: 600; color: #86868B; display: block; margin-bottom: 12rpx; }
+.picker-val { padding: 20rpx; background: rgba(255,255,255,0.8); border-radius: 12rpx; font-size: 28rpx; }
+.location-row { display: flex; gap: 16rpx; align-items: center; }
+.input { flex: 1; padding: 20rpx; background: rgba(255,255,255,0.8); border-radius: 12rpx; font-size: 28rpx; }
+.loc-btn { background: #007AFF; color: #fff; border-radius: 8rpx; font-size: 24rpx; padding: 0 20rpx; height: 60rpx; display: flex; align-items: center; }
+.loc-btn::after { border: none; }
+.gps-text { font-size: 22rpx; color: #34C759; margin-top: 8rpx; display: block; }
+.textarea { width: 100%; height: 120rpx; padding: 20rpx; background: rgba(255,255,255,0.8); border-radius: 12rpx; font-size: 28rpx; box-sizing: border-box; }
+
+.upload-area { border: 4rpx dashed rgba(0,0,0,0.1); border-radius: 20rpx; padding: 80rpx 20rpx; text-align: center; min-height: 300rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.upload-area.has-file { padding: 20rpx; border-style: solid; border-color: #007AFF; background: rgba(0,122,255,0.03); }
+.upload-icon { font-size: 80rpx; color: #007AFF; line-height: 1; }
+.upload-hint { font-size: 28rpx; font-weight: 500; margin-top: 12rpx; }
+.upload-limit { font-size: 22rpx; color: #86868B; margin-top: 8rpx; }
+
+.preview-grid { display: flex; flex-wrap: wrap; gap: 8rpx; width: 100%; }
+.preview-item { width: calc(33.33% - 6rpx); aspect-ratio: 1; border-radius: 12rpx; overflow: hidden; position: relative; background: #f0f0f0; }
+.preview-item image { width: 100%; height: 100%; }
+.preview-video { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40rpx; color: #86868B; }
+.preview-remove { position: absolute; top: 4rpx; right: 4rpx; width: 40rpx; height: 40rpx; background: rgba(0,0,0,0.5); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28rpx; line-height: 1; }
+.add-btn { border: 4rpx dashed rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-size: 48rpx; color: #007AFF; }
+
+.upload-btn { margin-top: 30rpx; background: #007AFF; color: #fff; border-radius: 16rpx; font-size: 30rpx; font-weight: 500; }
+.upload-btn::after { border: none; }

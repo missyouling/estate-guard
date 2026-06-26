@@ -1,0 +1,30 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="loading">加载中...</view>
+
+  <block wx:elif="{{item}}">
+    <view class="media-area">
+      <image wx:if="{{item.type==='image'}}" src="{{item.url}}" mode="widthFix" class="media-image"></image>
+      <video wx:if="{{item.type==='video'}}" src="{{item.url}}" controls class="media-video" autoplay></video>
+      <audio wx:if="{{item.type==='audio'}}" src="{{item.url}}" controls class="media-audio"></audio>
+    </view>
+
+    <view class="info-card glass">
+      <view class="info-title">{{item.original_name}}</view>
+      <view class="info-row"><text class="lbl">记录编号</text><text>NO.{{item.record_no}}</text></view>
+      <view class="info-row"><text class="lbl">类型</text><text>{{item.type==='image'?'图片':item.type==='video'?'视频':item.type==='audio'?'录音':'文件'}}</text></view>
+      <view class="info-row" wx:if="{{item.size_bytes}}"><text class="lbl">大小</text><text>{{formatSize(item.size_bytes)}}</text></view>
+      <view class="info-row" wx:if="{{item.width}}"><text class="lbl">尺寸</text><text>{{item.width}} x {{item.height}}</text></view>
+      <view class="info-row" wx:if="{{item.duration}}"><text class="lbl">时长</text><text>{{formatDuration(item.duration)}}</text></view>
+      <view class="info-row"><text class="lbl">上传时间</text><text>{{item.uploaded_at}}</text></view>
+      <view class="info-row" wx:if="{{item.address}}"><text class="lbl">位置</text><text>{{item.address}}</text></view>
+      <view class="info-row" wx:if="{{item.remark}}"><text class="lbl">备注</text><text>{{item.remark}}</text></view>
+    </view>
+
+    <view class="actions">
+      <button class="act-btn primary" bindtap="copyUrl" data-fmt="url">复制链接</button>
+      <button class="act-btn" bindtap="copyUrl" data-fmt="md">MD</button>
+      <button class="act-btn" bindtap="copyUrl" data-fmt="html">HTML</button>
+      <button class="act-btn danger" bindtap="handleDelete">删除</button>
+    </view>
+  </block>
+</view>

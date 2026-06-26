@@ -1,0 +1,33 @@
+{
+  "description": "物业服务监督系统",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "newFeature": true,
+    "coverView": true,
+    "nodeModules": true,
+    "autoAudits": false,
+    "checkInvalidKey": true,
+    "checkSiteMap": true,
+    "uploadWithSourceMap": true,
+    "useMultiFrameRuntime": true,
+    "useApiHook": true,
+    "useApiHostProcess": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "useIsolateContext": true,
+    "userConfirmedBundleSwitch": false,
+    "showES6CompileOption": false
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.7.0",
+  "appid": "YOUR_APPID_HERE",
+  "projectname": "property-supervision",
+  "condition": {}
+}

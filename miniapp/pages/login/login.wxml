@@ -1,0 +1,14 @@
+<view class="container">
+  <view class="card glass">
+    <text class="title">物业服务监督</text>
+    <text class="subtitle">业主 / 管理员登录</text>
+
+    <input class="input" placeholder="用户名 / 手机号 / 身份证号 / 姓名" value="{{account}}" bindinput="onAccount" />
+    <input class="input" type="password" placeholder="密码" value="{{password}}" bindinput="onPassword" />
+
+    <button class="login-btn" bindtap="handleLogin" loading="{{loading}}">登录</button>
+
+    <view class="bottom-link" bindtap="goRegister">还没有账号？注册</view>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+  </view>
+</view>

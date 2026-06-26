@@ -1,0 +1,9 @@
+.container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40rpx; }
+.card { width: 100%; max-width: 600rpx; padding: 60rpx 40rpx; border-radius: 30rpx; }
+.title { font-size: 40rpx; font-weight: 700; text-align: center; display: block; }
+.subtitle { font-size: 24rpx; color: #86868B; text-align: center; display: block; margin: 8rpx 0 40rpx; }
+.input { padding: 24rpx; background: rgba(255,255,255,0.8); border-radius: 14rpx; margin-bottom: 20rpx; font-size: 28rpx; text-align: center; }
+.login-btn { background: #007AFF; color: #fff; border-radius: 14rpx; font-size: 30rpx; font-weight: 500; margin-top: 20rpx; }
+.login-btn::after { border: none; }
+.bottom-link { text-align: center; color: #007AFF; font-size: 26rpx; margin-top: 30rpx; }
+.error { background: #FFF1F0; color: #FF3B30; font-size: 24rpx; padding: 16rpx; border-radius: 10rpx; text-align: center; margin-top: 20rpx; }

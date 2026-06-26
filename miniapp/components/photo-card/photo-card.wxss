@@ -1,0 +1,4 @@
+.card { position: relative; border-radius: 12rpx; overflow: hidden; background: #f0f0f0; }
+.card image { width: 100%; height: 100%; display: block; }
+.placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #86868B; font-size: 40rpx; }
+.badge { position: absolute; bottom: 8rpx; right: 8rpx; background: rgba(0,0,0,0.6); color: #fff; font-size: 18rpx; padding: 2rpx 8rpx; border-radius: 6rpx; }

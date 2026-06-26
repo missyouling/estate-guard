@@ -1,0 +1,42 @@
+<view class="container">
+  <view class="section">
+    <text class="section-title">选择分类</text>
+    <picker mode="selector" range="{{categories}}" range-key="name" bindchange="onCategoryChange">
+      <view class="picker-val">{{selectedCategory||'请选择分类'}}</view>
+    </picker>
+  </view>
+
+  <view class="section">
+    <text class="section-title">位置信息</text>
+    <view class="location-row">
+      <input class="input" placeholder="手动输入地点描述" value="{{address}}" bindinput="onAddressInput" />
+      <button class="loc-btn" bindtap="getLocation" size="mini">{{latitude?'已定位':'GPS'}}</button>
+    </view>
+    <text wx:if="{{latitude}}" class="gps-text">GPS: {{latitude}}, {{longitude}}</text>
+  </view>
+
+  <view class="section">
+    <text class="section-title">备注</text>
+    <textarea class="textarea" placeholder="补充说明..." value="{{remark}}" bindinput="onRemarkInput" maxlength="200" />
+  </view>
+
+  <view class="upload-area {{tempFiles.length>0?'has-file':''}}" bindtap="chooseMedia">
+    <block wx:if="{{tempFiles.length===0}}">
+      <text class="upload-icon">+</text>
+      <text class="upload-hint">点击拍摄或选择文件</text>
+      <text class="upload-limit">图片≤{{maxImage}}MB 视频≤{{maxVideo}}MB</text>
+    </block>
+    <view wx:else class="preview-grid">
+      <view class="preview-item" wx:for="{{tempFiles}}" wx:key="path">
+        <image wx:if="{{item.type==='image'}}" src="{{item.path}}" mode="aspectFill"></image>
+        <view wx:else class="preview-video">▶</view>
+        <view class="preview-remove" catchtap="removeFile" data-index="{{index}}">×</view>
+      </view>
+      <view class="preview-item add-btn" bindtap="chooseMedia">+</view>
+    </view>
+  </view>
+
+  <button wx:if="{{tempFiles.length>0}}" class="upload-btn" bindtap="uploadAll" disabled="{{uploading}}">
+    {{uploading?uploadProgress+'%':'上传 '+tempFiles.length+' 个文件'}}
+  </button>
+</view>

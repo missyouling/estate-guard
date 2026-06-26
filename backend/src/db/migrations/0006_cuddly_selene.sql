@@ -1,0 +1,1 @@
+ALTER TABLE `whitelist` ADD `property_info` text;

@@ -1,0 +1,33 @@
+.container { padding-bottom: 20rpx; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 20rpx 30rpx; margin: 20rpx; border-radius: 20rpx; }
+.title { font-size: 36rpx; font-weight: 700; }
+.tabs { display: flex; background: rgba(0,0,0,0.05); border-radius: 12rpx; padding: 4rpx; }
+.tab { padding: 8rpx 24rpx; font-size: 24rpx; color: #86868B; border-radius: 8rpx; transition: all 0.2s; }
+.tab.active { background: #fff; color: #007AFF; font-weight: 600; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06); }
+
+.loading, .empty { text-align: center; padding: 200rpx 0; color: #86868B; font-size: 28rpx; }
+.empty-hint { color: #007AFF; margin-top: 16rpx; }
+
+.grid-view { display: flex; flex-wrap: wrap; padding: 10rpx; }
+.grid-cell { width: calc(33.33% - 6rpx); aspect-ratio: 1; margin: 3rpx; border-radius: 12rpx; overflow: hidden; background: #fff; }
+.grid-cell image { width: 100%; height: 100%; }
+.video-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0; }
+.video-placeholder .icon { font-size: 48rpx; color: #86868B; }
+
+.list-view { padding: 10rpx 20rpx; }
+.list-item { display: flex; align-items: center; gap: 20rpx; padding: 20rpx; background: rgba(255,255,255,0.8); border-radius: 16rpx; margin-bottom: 12rpx; }
+.list-item image { width: 100rpx; height: 100rpx; border-radius: 12rpx; flex-shrink: 0; }
+.list-video-holder { width: 100rpx; height: 100rpx; border-radius: 12rpx; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 36rpx; color: #86868B; flex-shrink: 0; }
+.list-info { flex: 1; min-width: 0; }
+.list-name { font-size: 28rpx; font-weight: 500; display: block; }
+.list-meta { font-size: 22rpx; color: #86868B; margin-top: 4rpx; display: block; }
+
+.time-view { padding: 10rpx 20rpx; }
+.time-header { font-size: 28rpx; font-weight: 700; padding: 20rpx 0 10rpx; }
+.time-items { padding-left: 30rpx; border-left: 4rpx solid rgba(0,0,0,0.05); }
+.time-item { display: flex; align-items: center; gap: 16rpx; padding: 16rpx; background: rgba(255,255,255,0.8); border-radius: 12rpx; margin-bottom: 12rpx; }
+.time-item image { width: 80rpx; height: 80rpx; border-radius: 8rpx; flex-shrink: 0; }
+.time-item-info { flex: 1; min-width: 0; }
+.time-item-info text { display: block; font-size: 26rpx; }
+.time-meta { color: #86868B; font-size: 22rpx !important; margin-top: 2rpx; }
+.time-clock { font-size: 22rpx; color: #86868B; flex-shrink: 0; }

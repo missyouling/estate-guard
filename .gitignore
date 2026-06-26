@@ -1,0 +1,14 @@
+node_modules/
+dist/
+data/
+uploads/
+.env
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+public/
+backend/public/
+.vite/
+图床api.txt
+ScreenShot_*.png
+*.tsbuildinfo
