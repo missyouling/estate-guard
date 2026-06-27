@@ -109,6 +109,7 @@ export default function Home() {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [previewInfoMap, setPreviewInfoMap] = useState<Record<number, { url: string; mode: string }>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(72);
   const [total, setTotal] = useState(0);
@@ -138,9 +139,12 @@ export default function Home() {
       const res = await api.get('/media/wall', { params });
       if (res.data.code === 0) {
         const data = res.data.data;
-        const items = data?.items || data?.timeline?.flatMap((g: any) => g.items) || [];
+        const raw = data?.items || data?.timeline?.flatMap((g: any) => g.items) || [];
+        const VALID_TYPES = ['image', 'video', 'audio'];
+        const items = raw.filter((m: Media) => VALID_TYPES.includes(m.type));
         setMedia(items);
-        setTotal(data?.total || 0);
+        const totalFromData = data?.total;
+        setTotal(totalFromData !== undefined ? totalFromData : items.length);
       }
     } catch {} finally { setLoading(false); }
   }
@@ -164,22 +168,84 @@ export default function Home() {
     setSelected(next);
   };
 
+  const openPreview = async (item: Media) => {
+    if (selectMode) { toggleSelect(item.id); return; }
+    const idx = media.findIndex(m => m.id === item.id);
+    if (idx < 0) return;
+    if (!previewInfoMap[item.id]) {
+      try {
+        const res = await api.get('/preview/url', { params: { path: item.url } });
+        if (res.data.code === 0 && res.data.data) {
+          const { mode, url } = res.data.data;
+          if (mode === 'kkfileview' || mode === 'pdf') {
+            setPreviewInfoMap(prev => ({ ...prev, [item.id]: { url, mode } }));
+          }
+        }
+      } catch {}
+    }
+    setPreviewIndex(idx);
+  };
+
   const selectAll = () => {
     if (selected.size === media.length) setSelected(new Set());
     else setSelected(new Set(media.map(m => m.id)));
   };
 
-  const renderGridItem = useCallback((item: Media, _index: number) => {
+  const renderGridItem = useCallback((item: Media, index: number) => {
+    const onClickItem = () => {
+      if (selectMode) { toggleSelect(item.id); return; }
+      setPreviewIndex(index);
+    };
+    const renderThumb = () => {
+      if (item.type === 'image') {
+        return <img src={item.thumbnail_url || item.url} alt="" className="w-full h-full object-cover object-center" loading="lazy" />;
+      }
+      if (item.type === 'video') {
+        return (
+          <div className="w-full h-full relative">
+            {item.thumbnail_url ? (
+              <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover object-center" loading="lazy" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-800/30 to-zinc-900/30 dark:from-zinc-700/40 dark:to-zinc-900/40">
+                <div className="flex flex-col items-center gap-1">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--muted-foreground)]">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10,8 16,12 10,16"/>
+                  </svg>
+                  <span className="text-[10px] text-[var(--muted-foreground)] font-medium tracking-wider">VIDEO</span>
+                </div>
+              </div>
+            )}
+            <div className="absolute bottom-1.5 left-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center backdrop-blur-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="8,5 19,12 8,19"/></svg>
+            </div>
+          </div>
+        );
+      }
+      if (item.type === 'audio') {
+        return (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400/15 to-purple-400/15">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--muted-foreground)]">
+              <path d="M9 18V5l12-2v13"/>
+              <circle cx="6" cy="18" r="3"/>
+              <circle cx="18" cy="16" r="3"/>
+            </svg>
+          </div>
+        );
+      }
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-[var(--muted)] p-1">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--muted-foreground)]">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
+            <path d="M14 2v6h6"/>
+          </svg>
+          <span className="text-[10px] text-center leading-tight truncate w-full text-[var(--muted-foreground)]">{item.original_name}</span>
+        </div>
+      );
+    };
     if (selectMode) {
       return (
         <div className="w-full h-full relative" onClick={() => toggleSelect(item.id)}>
-          {item.type === 'image' ? (
-            <img src={item.thumbnail_url || item.url} alt="" className="w-full h-full object-cover object-center" loading="lazy" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[var(--muted-foreground)]">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1}><path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><rect x="1" y="3" width="22" height="18" rx="2"/></svg>
-            </div>
-          )}
+          {renderThumb()}
           <div className={`absolute top-2 right-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${selected.has(item.id) ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-white bg-black/20'}`}>
             {selected.has(item.id) && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3}><path d="M20 6L9 17l-5-5"/></svg>}
           </div>
@@ -187,17 +253,11 @@ export default function Home() {
       );
     }
     return (
-      <div className="w-full h-full" onClick={() => goDetail(item)}>
-        {item.type === 'image' ? (
-          <img src={item.thumbnail_url || item.url} alt="" className="w-full h-full object-cover object-center" loading="lazy" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-[var(--muted-foreground)]">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1}><path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><rect x="1" y="3" width="22" height="18" rx="2"/></svg>
-          </div>
-        )}
+      <div className="w-full h-full relative" onClick={onClickItem}>
+        {renderThumb()}
       </div>
     );
-  }, [selectMode, selected]);
+  }, [selectMode, selected, setPreviewIndex, navigate]);
 
   const contentHeight = 'calc(100vh - 260px)';
 
@@ -206,7 +266,7 @@ export default function Home() {
       {/* Fixed header */}
       <div className="flex-shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4 -mt-1">
-          <h2 className="text-[var(--foreground)] text-xl font-bold tracking-tight">证据上传</h2>
+           <h2 className="text-[var(--foreground)] text-xl font-bold tracking-tight">照片墙</h2>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative">
               <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setPage(1); scrollRef.current?.scrollTo(0, 0); }}
@@ -219,7 +279,12 @@ export default function Home() {
             <button onClick={() => setShowUpload(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-medium shadow-sm">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-7l5-5 5 5m-5-5v12"/></svg>
-              上传证据
+              上传文件
+            </button>
+            <button onClick={() => navigate('/export')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] font-medium transition-colors shadow-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6"/></svg>
+              证据管理
             </button>
             <div className="flex rounded-lg bg-[var(--muted)] p-0.5 gap-0.5">
               {(['grid', 'list', 'timeline'] as ViewMode[]).map((mode) => (
@@ -273,7 +338,7 @@ export default function Home() {
           <div className="text-center py-20 text-[var(--muted-foreground)] text-sm">加载中...</div>
         ) : media.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-[var(--muted-foreground)] text-sm mb-3">暂无照片</div>
+            <div className="text-[var(--muted-foreground)] text-sm mb-3">暂无内容</div>
             <button onClick={() => setShowUpload(true)} className="text-[var(--primary)] text-sm font-medium hover:underline">去上传文件</button>
           </div>
         ) : (
@@ -290,7 +355,7 @@ export default function Home() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {media.map((item) => (
                   <div key={item.id} className="flex items-center gap-3 bg-[var(--card)] rounded-xl p-3 cursor-pointer hover:bg-[var(--muted)] transition-colors border border-[var(--border)] shadow-sm"
-                    onClick={() => selectMode ? toggleSelect(item.id) : goDetail(item)}>
+                    onClick={() => openPreview(item)}>
                     {selectMode && (
                       <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${selected.has(item.id) ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-[var(--border)]'}`}>
                         {selected.has(item.id) && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3}><path d="M20 6L9 17l-5-5"/></svg>}
@@ -299,9 +364,30 @@ export default function Home() {
                     <div className="w-14 h-14 overflow-hidden bg-[var(--muted)] flex-shrink-0 rounded-lg">
                       {item.type === 'image' ? (
                         <img src={item.thumbnail_url || item.url} alt="" className="w-full h-full object-cover object-center" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[var(--muted-foreground)]"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1}><path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><rect x="1" y="3" width="22" height="18" rx="2"/></svg></div>
-                      )}
+                      ) : item.type === 'video' ? (
+                        <div className="w-full h-full relative">
+                          {item.thumbnail_url ? (
+                            <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover object-center" loading="lazy" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-800/30 to-zinc-900/30 dark:from-zinc-700/40 dark:to-zinc-900/40">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--muted-foreground)]">
+                                <rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10,8 16,12 10,16"/>
+                              </svg>
+                            </div>
+                          )}
+                          <div className="absolute bottom-0.5 left-0.5 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><polygon points="8,5 19,12 8,19"/></svg>
+                          </div>
+                        </div>
+                      ) : item.type === 'audio' ? (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400/15 to-purple-400/15">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--muted-foreground)]">
+                            <path d="M9 18V5l12-2v13"/>
+                            <circle cx="6" cy="18" r="3"/>
+                            <circle cx="18" cy="16" r="3"/>
+                          </svg>
+                        </div>
+                      ) : null}
                     </div>
                     <div className="flex-1 min-w-0"><div className="text-sm font-medium text-[var(--foreground)] truncate">NO.{item.record_no} {item.original_name}</div><div className="text-xs text-[var(--muted-foreground)] mt-0.5">{item.category_name && <span className="mr-2">{item.category_name}</span>}{item.uploaded_at}</div></div>
                   </div>
@@ -319,7 +405,7 @@ export default function Home() {
                       <div className="ml-3 pl-4 border-l-2 border-[var(--border)] space-y-3">
                         {items.map((item) => (
                           <div key={item.id} className="flex items-center gap-3 bg-[var(--card)] rounded-xl p-3 cursor-pointer hover:bg-[var(--muted)] transition-colors border border-[var(--border)] shadow-sm"
-                            onClick={() => selectMode ? toggleSelect(item.id) : goDetail(item)}>
+                            onClick={() => openPreview(item)}>
                             {selectMode && (
                               <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${selected.has(item.id) ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-[var(--border)]'}`}>
                                 {selected.has(item.id) && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3}><path d="M20 6L9 17l-5-5"/></svg>}
@@ -327,6 +413,31 @@ export default function Home() {
                             )}
                             <div className="w-12 h-12 overflow-hidden bg-[var(--muted)] flex-shrink-0 rounded-lg">
                               {item.type === 'image' && <img src={item.thumbnail_url || item.url} alt="" className="w-full h-full object-cover object-center" loading="lazy" />}
+                              {item.type === 'video' && (
+                                <div className="w-full h-full relative">
+                                  {item.thumbnail_url ? (
+                                    <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover object-center" loading="lazy" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-800/30 to-zinc-900/30 dark:from-zinc-700/40 dark:to-zinc-900/40">
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--muted-foreground)]">
+                                        <rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10,8 16,12 10,16"/>
+                                      </svg>
+                                    </div>
+                                  )}
+                                  <div className="absolute bottom-0.5 left-0.5 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><polygon points="8,5 19,12 8,19"/></svg>
+                                  </div>
+                                </div>
+                              )}
+                              {item.type === 'audio' && (
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400/15 to-purple-400/15">
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--muted-foreground)]">
+                                    <path d="M9 18V5l12-2v13"/>
+                                    <circle cx="6" cy="18" r="3"/>
+                                    <circle cx="18" cy="16" r="3"/>
+                                  </svg>
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0"><div className="text-sm font-medium text-[var(--foreground)] truncate">{item.original_name}</div><div className="text-xs text-[var(--muted-foreground)]">NO.{item.record_no} {item.address && `· ${item.address}`}</div></div>
                             <span className="text-xs text-[var(--muted-foreground)]">{item.uploaded_at?.split(' ')[1] || ''}</span>
@@ -363,9 +474,18 @@ export default function Home() {
 
       {previewIndex !== null && (
         <PreviewModal
-          items={media.map(m => ({ url: m.url, original_name: m.original_name, type: m.type, thumbnail_url: m.thumbnail_url || '' }))}
+          items={media.map(m => ({
+            url: m.url,
+            original_name: m.original_name,
+            type: m.type,
+            thumbnail_url: m.thumbnail_url || '',
+            size_bytes: m.size_bytes,
+            mime_type: m.mime_type,
+            preview_url: previewInfoMap[m.id]?.url,
+            preview_mode: previewInfoMap[m.id]?.mode,
+          }))}
           index={previewIndex}
-          onClose={() => setPreviewIndex(null)}
+          onClose={() => { setPreviewIndex(null); setPreviewInfoMap({}); }}
           onPrev={() => setPreviewIndex(i => i! > 0 ? i! - 1 : i)}
           onNext={() => setPreviewIndex(i => i! < media.length - 1 ? i! + 1 : i)}
         />

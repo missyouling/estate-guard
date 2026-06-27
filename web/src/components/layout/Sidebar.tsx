@@ -6,7 +6,7 @@ import ConfirmModal from '@/components/ConfirmModal';
 import AvatarProfile from '@/components/AvatarProfile';
 
 const navItems = [
-  { path: '/', label: '证据上传', icon: 'grid' },
+  { path: '/', label: '照片墙', icon: 'grid' },
   { path: '/dashboard', label: '系统概览', icon: 'home' },
   { path: '/export', label: '证据管理', icon: 'file-text' },
   { path: '/shares', label: '分享管理', icon: 'share-2' },

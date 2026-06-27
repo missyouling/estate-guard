@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -150,8 +150,23 @@ export default function ShareModal({ mediaIds, mediaItems, onClose }: ShareModal
                       {m.thumbnail_url ? (
                         <img src={m.thumbnail_url} alt="" className="w-8 h-8 rounded object-cover border border-[var(--border)]" />
                       ) : (
-                        <div className="w-8 h-8 rounded bg-[var(--muted)] flex items-center justify-center text-[10px] text-[var(--muted-foreground)]">
-                          {m.type === 'video' ? '🎬' : m.type === 'audio' ? '🎵' : '📄'}
+                        <div className="w-8 h-8 rounded bg-[var(--muted)] flex items-center justify-center">
+                          {m.type === 'video' ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--muted-foreground)]">
+                              <rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10,8 16,12 10,16"/>
+                            </svg>
+                          ) : m.type === 'audio' ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--muted-foreground)]">
+                              <path d="M9 18V5l12-2v13"/>
+                              <circle cx="6" cy="18" r="3"/>
+                              <circle cx="18" cy="16" r="3"/>
+                            </svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--muted-foreground)]">
+                              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
+                              <path d="M14 2v6h6"/>
+                            </svg>
+                          )}
                         </div>
                       )}
                       <span className="flex-1 truncate">{m.original_name}</span>

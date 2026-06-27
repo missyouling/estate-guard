@@ -23,6 +23,7 @@ const configGroups: { label: string; keys: string[] }[] = [
   { label: '视频处理', keys: ['video_transcode_max_width', 'video_transcode_bitrate'] },
   { label: '地理编码', keys: ['geocode_provider', 'geocode_api_key'] },
   { label: '存储配置', keys: ['storage_backend', 'node_image_api_url', 'node_image_api_key', 's3_endpoint', 's3_bucket', 's3_access_key', 's3_secret_key', 's3_region'] },
+  { label: '文件预览', keys: ['kkfileview_enabled', 'kkfileview_url', 'libreoffice_enabled'] },
 ];
 
 const keyLabels: Record<string, string> = {
@@ -47,6 +48,8 @@ const keyLabels: Record<string, string> = {
   storage_backend: '存储后端', s3_endpoint: 'S3 Endpoint', s3_bucket: 'S3 Bucket',
   s3_access_key: 'S3 AccessKey', s3_secret_key: 'S3 SecretKey', s3_region: 'S3 Region',
   node_image_api_url: '图床API地址', node_image_api_key: '图床API Key',
+  kkfileview_enabled: '启用 kkFileView 预览服务', kkfileview_url: 'kkFileView 服务地址',
+  libreoffice_enabled: '启用 LibreOffice 文档转换',
 };
 
 const keyHelpers: Record<string, string> = {
@@ -85,10 +88,13 @@ const keyHelpers: Record<string, string> = {
   s3_region: 'S3 区域代码',
   node_image_api_url: 'Node 图床 API 地址',
   node_image_api_key: 'Node 图床 API Key',
+  kkfileview_enabled: '开启后文件预览优先调用 kkFileView 服务，可覆盖更多格式',
+  kkfileview_url: 'kkFileView 服务内网地址，格式如 http://kkfileview:8012',
+  libreoffice_enabled: '开启后旧版 Office、WPS 等格式自动转为 PDF 预览；关闭则仅支持纯前端格式',
 };
 
 // Boolean config keys — show as Switch toggle
-const BOOLEAN_KEYS = new Set(['watermark_auto_apply', 'watermark_show_bg']);
+const BOOLEAN_KEYS = new Set(['watermark_auto_apply', 'watermark_show_bg', 'kkfileview_enabled', 'libreoffice_enabled']);
 
 // Numeric config keys — show as number input with +/- buttons and unit
 const NUMERIC_KEYS = new Set([

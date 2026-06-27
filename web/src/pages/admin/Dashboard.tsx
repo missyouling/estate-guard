@@ -303,7 +303,7 @@ export default function Dashboard() {
       {/* ---------- Row 3: Daily Trend ---------- */}
       <div className="bg-[var(--card)]/80 backdrop-blur-md border border-[var(--border)] rounded-xl p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[var(--foreground)] text-sm font-semibold">证据上传量趋势</h3>
+          <h3 className="text-[var(--foreground)] text-sm font-semibold">照片墙趋势</h3>
           <div className="flex items-center rounded-lg bg-[var(--muted)] p-0.5 gap-0.5">
             {[7, 15, 30].map(d => (
               <button key={d} onClick={() => switchDays(d)}

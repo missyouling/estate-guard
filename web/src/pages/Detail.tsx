@@ -84,6 +84,21 @@ export default function Detail() {
               <audio src={item.url} controls className="w-full" />
             </div>
           )}
+          {item.type === 'document' && (
+            <div className="flex flex-col items-center justify-center py-16 px-4 bg-[var(--card)]">
+              <div className="w-20 h-20 rounded-2xl bg-[var(--muted)] flex items-center justify-center mb-4">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <p className="text-[var(--foreground)] text-lg font-medium mb-1">{item.original_name}</p>
+              <p className="text-[var(--muted-foreground)] text-sm mb-1">{item.mime_type || '文件'}</p>
+              <p className="text-[var(--muted-foreground)] text-sm mb-6">{formatBytes(item.size_bytes)}</p>
+              <a href={item.url} download
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] text-sm font-medium hover:opacity-80 transition-opacity">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                下载文件
+              </a>
+            </div>
+          )}
 
           {total > 1 && (
             <>

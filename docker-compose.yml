@@ -23,9 +23,51 @@ services:
       - APP_URL=${APP_URL:-http://localhost:3000}
       - AMAP_API_KEY=${AMAP_API_KEY}
       - GENERATE_TEST_DATA=true
+      - LIBREOFFICE_URL=http://libreoffice:3001
+      - LIBREOFFICE_SECRET=${LIBREOFFICE_SECRET:-lo-default-secret}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
+
+  # LibreOffice — 文档转换服务（轻量级，默认启用）
+  # 将旧版 Office、WPS 等纯前端不支持的文档转为 PDF，供前端预览
+  # 转换资源受限，不影响主业务；结果缓存至 preview-cache 卷
+  libreoffice:
+    build: ./backend/libreoffice
+    container_name: libreoffice
+    platform: linux/amd64
+    volumes:
+      - ./backend/uploads:/app/uploads
+    environment:
+      - MAX_CONCURRENT=2
+      - CONVERSION_TIMEOUT=120000
+      - LIBREOFFICE_SECRET=${LIBREOFFICE_SECRET:-lo-default-secret}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # kkFileView — 文件预览服务（可选高配）
+  # 取消注释即可启用，支持全格式专业预览（需在系统设置中开启）
+  # kkfileview:
+  #   image: keking/kkfileview:latest
+  #   container_name: kkfileview
+  #   ports:
+  #     - "127.0.0.1:8012:8012"
+  #   volumes:
+  #     - kkfileview-cache:/opt/kkFileView/cache
+  #   environment:
+  #     - KK_FILE_VIEW_CLEAN_CACHE_INTERVAL=600
+  #   restart: unless-stopped
+
+

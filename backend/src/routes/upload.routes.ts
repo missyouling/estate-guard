@@ -194,7 +194,7 @@ export default async function uploadRoutes(app: FastifyInstance) {
             fs.mkdirSync(thumbDir, { recursive: true });
             const thumbPath = path.join(thumbDir, `${storageId}_thumb.jpg`);
             spawnSync('ffmpeg', [
-              '-y', '-i', destPath, '-vframes', '1', '-ss', '0',
+              '-y', '-i', destPath, '-vframes', '1', '-ss', '0.5',
               '-vf', 'scale=400:400:force_original_aspect_ratio=increase,crop=400:400',
               '-q:v', '3', thumbPath,
             ], { timeout: 10000 });
@@ -245,7 +245,7 @@ export default async function uploadRoutes(app: FastifyInstance) {
 
       const now = beijingTime();
       const db = getDb();
-      await db.insert(media).values({
+      const [inserted] = await db.insert(media).values({
         record_no: recordNo,
         user_id: (req.user as any).sub,
         category_id: categoryId,
@@ -268,9 +268,10 @@ export default async function uploadRoutes(app: FastifyInstance) {
         status: 'active',
         remark: remark || null,
         uploaded_at: now,
-      });
+      }).returning({ id: media.id });
 
       return reply.send(success({
+        id: inserted.id,
         record_no: recordNo,
         url: finalUrl,
         thumbnail_url: thumbnailUrl || null,

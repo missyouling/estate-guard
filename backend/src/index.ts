@@ -20,6 +20,7 @@ import notificationRoutes from './routes/notification.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import announcementRoutes from './routes/announcement.routes';
 import geocodeRoutes from './routes/geocode.routes';
+import previewRoutes from './routes/preview.routes';
 import { updateActivity } from './services/onlineStatus';
 import { runPendingMigrations } from './services/pendingMigrations';
 
@@ -57,6 +58,7 @@ async function main() {
   await app.register(dashboardRoutes);
   await app.register(announcementRoutes);
   await app.register(geocodeRoutes);
+  await app.register(previewRoutes);
 
   app.addHook('onRequest', async (req) => {
     try {

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import type { Category } from '@/types';
+import type { Category, Media } from '@/types';
 import PreviewModal from '@/components/PreviewModal';
+import ShareModal from '@/components/ShareModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import * as XLSX from 'xlsx';
 
@@ -26,11 +27,13 @@ interface EvidenceItem {
 
 export default function Export() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState(() => sessionStorage.getItem('export_categoryId') || '');
   const [dateFrom, setDateFrom] = useState(() => sessionStorage.getItem('export_dateFrom') || '');
   const [dateTo, setDateTo] = useState(() => sessionStorage.getItem('export_dateTo') || '');
   const [type, setType] = useState(() => sessionStorage.getItem('export_type') || '');
+  const [showShare, setShowShare] = useState(false);
   const [items, setItems] = useState<EvidenceItem[]>(() => {
     try { return JSON.parse(sessionStorage.getItem('export_items') || '[]'); } catch { return []; }
   });
@@ -43,6 +46,7 @@ export default function Export() {
   const [previewItem, setPreviewItem] = useState<EvidenceItem | null>(null);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [previewItems, setPreviewItems] = useState<EvidenceItem[]>([]);
+  const [previewInfoMap, setPreviewInfoMap] = useState<Record<number, { url: string; mode: string; reason?: string }>>({});
   const [openMenu, setOpenMenu] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<EvidenceItem | null>(null);
   const [detailItem, setDetailItem] = useState<EvidenceItem | null>(null);
@@ -50,6 +54,7 @@ export default function Export() {
   const printFrameRef = useRef<HTMLIFrameElement>(null);
   const [printReady, setPrintReady] = useState(false);
   const printPendingRef = useRef(false);
+  const focusHandledRef = useRef(false);
 
   const doPrint = () => {
     const f = printFrameRef.current;
@@ -82,15 +87,36 @@ export default function Export() {
     }
   }, [categoryId, dateFrom, dateTo, type, items, total]);
 
-  const saveFiltersAndNavigate = (path: string, state?: any) => {
-    sessionStorage.setItem('export_categoryId', categoryId);
-    sessionStorage.setItem('export_dateFrom', dateFrom);
-    sessionStorage.setItem('export_dateTo', dateTo);
-    sessionStorage.setItem('export_type', type);
-    sessionStorage.setItem('export_items', JSON.stringify(items));
-    sessionStorage.setItem('export_total', String(total));
-    navigate(path, state);
-  };
+  // Auto-preview focused item from photo wall document click
+  const focusId = searchParams.get('focus');
+  useEffect(() => {
+    if (focusId && items.length > 0 && !loading && !focusHandledRef.current) {
+      focusHandledRef.current = true;
+      const focusNum = parseInt(focusId);
+      const idx = items.findIndex(it => it.id === focusNum);
+      if (idx >= 0) {
+        setPreviewItem(items[idx]);
+        setPreviewIndex(idx);
+      }
+      // Clear focus param from URL to prevent re-trigger on refresh
+      const url = new URL(window.location.href);
+      url.searchParams.delete('focus');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    }
+  }, [focusId, items, loading]);
+
+  // Reset preview on items change (search/filter/pagination) unless auto-opened by focus
+  useEffect(() => {
+    if (!focusHandledRef.current) {
+      setPreviewItem(null);
+      setPreviewIndex(0);
+    }
+  }, [items]);
+
+  // Clear focusHandledRef on unmount
+  useEffect(() => {
+    return () => { focusHandledRef.current = false; };
+  }, []);
 
   const fullUrl = (url: string) => url?.startsWith('http') || url?.startsWith('//') ? url : window.location.origin + (url || '');
 
@@ -134,7 +160,7 @@ ${toPrint.map(it => `<tr><td>NO.${it.record_no}</td><td>${{image:'图片',video:
     setPrintHtml(html); setPrintReady(false); printPendingRef.current = false; setShowPrintPreview(true);
   };
 
-  const handlePreview = (item: EvidenceItem, idx: number) => {
+  const handlePreview = async (item: EvidenceItem, idx: number) => {
     const list = previewItems.length > 0 ? previewItems : items;
     const i = list.findIndex(it => it.record_no === item.record_no);
     const previewable = ['image', 'video', 'audio'];
@@ -142,6 +168,17 @@ ${toPrint.map(it => `<tr><td>NO.${it.record_no}</td><td>${{image:'图片',video:
     if (item.type === 'document') {
       const ext = item.original_name?.split('.').pop()?.toLowerCase();
       if (ext === 'pdf') { setPreviewItem(item); setPreviewIndex(i >= 0 ? i : idx); return; }
+      // Fetch preview URL for document types (store in state, pass via items map)
+      try {
+        const res = await api.get('/preview/url', { params: { path: item.url } });
+        if (res.data.code === 0 && res.data.data) {
+          const { mode, url, reason } = res.data.data;
+          setPreviewInfoMap(prev => ({ ...prev, [item.record_no]: { url: url || '', mode, reason } }));
+        }
+      } catch {}
+      setPreviewItem(item);
+      setPreviewIndex(i >= 0 ? i : idx);
+      return;
     }
     toast.error('此文件类型不支持预览，请下载查看');
   };
@@ -283,7 +320,7 @@ ${item.file_hash ? `<div class="fingerprint"><div class="label">数字指纹 (SH
               {selectMode && (<><button onClick={selectAll} className="text-xs text-[var(--primary)] hover:underline">{selected.size === items.length ? '取消全选' : '全选'}</button><span className="text-xs text-[var(--muted-foreground)]">已选 {selected.size} 项</span></>)}
               <div className="flex-1" />
               <button onClick={handleBatchDownload} className="px-3 py-1 text-xs rounded-lg bg-[var(--muted)] text-[var(--muted-foreground)] font-medium">{selected.size > 0 ? `下载 (${selected.size})` : '下载全部'}</button>
-              <button onClick={() => saveFiltersAndNavigate('/share', { state: { ids: (selected.size > 0 ? selectedItems : items).map(it => it.id) } })}
+               <button onClick={() => setShowShare(true)}
                 className="px-3 py-1 text-xs rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-medium">分享 {selected.size > 0 ? `(${selected.size})` : ''}</button>
               <button onClick={handlePrint} className="px-3 py-1 text-xs rounded-lg bg-[var(--muted)] text-[var(--muted-foreground)] font-medium">打印预览 {selected.size > 0 ? `(${selected.size})` : ''}</button>
               <button onClick={handleExportExcel} className="px-3 py-1 text-xs rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-medium">导出现存证清单</button>
@@ -377,7 +414,14 @@ ${item.file_hash ? `<div class="fingerprint"><div class="label">数字指纹 (SH
 
       {previewItem && (
         <PreviewModal
-          items={(previewItems.length > 0 ? previewItems : items).map(it => ({ url: it.url, original_name: it.original_name, type: it.type }))}
+          items={(previewItems.length > 0 ? previewItems : items).map(it => ({
+            url: it.url,
+            original_name: it.original_name,
+            type: it.type,
+            preview_url: previewInfoMap[it.record_no]?.url || '',
+            preview_mode: previewInfoMap[it.record_no]?.mode || '',
+            ...(previewInfoMap[it.record_no]?.reason ? { preview_reason: previewInfoMap[it.record_no].reason } : {}),
+          }))}
           index={(previewItems.length > 0 ? previewItems : items).findIndex(it => it.record_no === previewItem.record_no)}
           onClose={() => setPreviewItem(null)}
           onPrev={(previewItems.length > 0 ? previewItems : items).length > 1 ? () => {
@@ -392,6 +436,17 @@ ${item.file_hash ? `<div class="fingerprint"><div class="label">数字指纹 (SH
           } : undefined}
         />
       )}
+
+      {showShare && (() => {
+        const toShare = (selected.size > 0 ? selectedItems : items);
+        return (
+          <ShareModal
+            mediaIds={toShare.map(it => it.id)}
+            mediaItems={toShare as unknown as Media[]}
+            onClose={() => setShowShare(false)}
+          />
+        );
+      })()}
 
       {/* Evidence detail modal */}
       {detailItem && (

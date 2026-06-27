@@ -51,9 +51,13 @@ export default async function mediaRoutes(app: FastifyInstance) {
 
     let conditions = [eq(media.status, 'active')];
     if (query.category_id) conditions.push(eq(media.category_id, parseInt(query.category_id)));
+    const allowedTypes = ['image', 'video', 'audio'];
     if (query.type) {
-      const types = String(query.type).split(',').map(t => t.trim()).filter(Boolean);
+      const types = String(query.type).split(',').map(t => t.trim()).filter(Boolean)
+        .filter(t => allowedTypes.includes(t));
       if (types.length > 0) conditions.push(inArray(media.type, types));
+    } else {
+      conditions.push(inArray(media.type, allowedTypes));
     }
     if (query.date_from) conditions.push(drizzleSql`${media.uploaded_at} >= ${query.date_from}`);
     if (query.date_to) conditions.push(drizzleSql`${media.uploaded_at} <= ${query.date_to}`);

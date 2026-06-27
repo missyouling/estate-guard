@@ -11,21 +11,45 @@ function captureVideoFrame(file: File): Promise<string> {
     video.preload = 'metadata';
     video.muted = true;
     video.playsInline = true;
+    video.crossOrigin = 'anonymous';
     const url = URL.createObjectURL(file);
     video.src = url;
-    video.onloadeddata = () => {
-      video.currentTime = Math.min(1, video.duration / 2);
-    };
-    video.onseeked = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) ctx.drawImage(video, 0, 0);
-      resolve(canvas.toDataURL('image/jpeg', 0.6));
+
+    let settled = false;
+    const done = (dataUrl: string) => {
+      if (settled) return;
+      settled = true;
       URL.revokeObjectURL(url);
+      video.remove();
+      resolve(dataUrl);
     };
-    video.onerror = () => { URL.revokeObjectURL(url); resolve(''); };
+
+    const timeout = setTimeout(() => done(''), 8000);
+
+    const trySeek = () => {
+      const seekTime = Math.max(0.5, Math.min(0.5, (video.duration || 1) * 0.1));
+      video.currentTime = seekTime;
+    };
+
+    video.onloadedmetadata = () => {
+      if (video.videoWidth === 0 || video.videoHeight === 0) { done(''); return; }
+      trySeek();
+    };
+
+    video.onseeked = () => {
+      clearTimeout(timeout);
+      const w = video.videoWidth || 400;
+      const h = video.videoHeight || 300;
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.drawImage(video, 0, 0, w, h);
+      done(canvas.toDataURL('image/jpeg', 0.6));
+    };
+
+    video.onerror = () => { clearTimeout(timeout); done(''); };
+    video.onabort = () => { clearTimeout(timeout); done(''); };
   });
 }
 
@@ -141,6 +165,8 @@ export default function UploadModal({ onClose, redirectTo, onUploaded }: { onClo
     setUploading(true);
     setProgress(files.map(() => 0));
     let success = 0;
+    let hasDocument = false;
+    const docIds: number[] = [];
     const failedReasons: string[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -149,6 +175,7 @@ export default function UploadModal({ onClose, redirectTo, onUploaded }: { onClo
       if (categoryId) fd.append('category_id', String(categoryId));
       fd.append('address', address);
       const endpoint = file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : file.type.startsWith('image') ? 'image' : 'document';
+      if (endpoint === 'document') hasDocument = true;
       try {
         const res = await api.post(`/upload/${endpoint}`, fd, {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -159,7 +186,11 @@ export default function UploadModal({ onClose, redirectTo, onUploaded }: { onClo
             }
           },
         });
-        if (res.data.code === 0) { success++; setProgress(prev => { const n = [...prev]; n[i] = 100; return n; }); }
+        if (res.data.code === 0) {
+          success++;
+          if (endpoint === 'document' && res.data.data?.id) docIds.push(res.data.data.id);
+          setProgress(prev => { const n = [...prev]; n[i] = 100; return n; });
+        }
         else { failedReasons.push(`${file.name}: ${res.data.message}`); setProgress(prev => { const n = [...prev]; n[i] = -1; return n; }); }
       } catch (err: any) {
         failedReasons.push(`${file.name}: ${err.response?.data?.message || '网络错误'}`);
@@ -168,10 +199,20 @@ export default function UploadModal({ onClose, redirectTo, onUploaded }: { onClo
     }
     setUploading(false);
     if (success > 0 && failedReasons.length === 0) {
-      toast.success(`成功上传 ${success} 个文件`);
+      if (hasDocument && docIds.length > 0) {
+        toast.success((t) => (
+          <div className="flex items-center gap-3">
+            <span>该类文件已保存，可前往证据管理页面查看预览与管理</span>
+            <button onClick={() => { toast.dismiss(t.id); navigate(`/export?focus=${docIds[0]}`); }}
+              className="text-[var(--primary)] font-medium whitespace-nowrap shrink-0">前往</button>
+          </div>
+        ), { duration: 6000 });
+      } else {
+        toast.success(`成功上传 ${success} 个文件`);
+      }
       onUploaded?.();
       onClose();
-      if (redirectTo) navigate(redirectTo);
+      if (!hasDocument && redirectTo) navigate(redirectTo);
     } else if (success > 0) {
       toast.success(`成功上传 ${success} 个文件`);
       toast.error(`上传失败 ${failedReasons.length} 个\n${failedReasons.join('\n')}`, { duration: 5000 });

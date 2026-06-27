@@ -46,6 +46,31 @@ export default function Shares() {
   const [renewItem, setRenewItem] = useState<ShareItem | null>(null);
   const [renewDays, setRenewDays] = useState<number>(7);
 
+  // Column visibility
+  const columnDefs = [
+    { key: 'media_count', label: '文件数', def: true, fixed: false },
+    { key: 'password', label: '密码', def: true, fixed: false },
+    { key: 'visit_count', label: '浏览', def: true, fixed: false },
+    { key: 'download_count', label: '下载', def: true, fixed: false },
+    { key: 'last_access', label: '最后访问', def: true, fixed: false },
+    { key: 'ip', label: 'IP地址', def: true, fixed: false },
+    { key: 'expires_at', label: '有效期', def: true, fixed: false },
+    { key: 'created_at', label: '分享时间', def: true, fixed: false },
+    { key: 'renew', label: '续期', def: true, fixed: false },
+  ];
+  const getDefaultCols = () => new Set(columnDefs.filter(c => c.def).map(c => c.key));
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(sessionStorage.getItem('shares_visibleCols') || 'null') || getDefaultCols()); } catch { return getDefaultCols(); }
+  });
+  const toggleColumn = (key: string) => {
+    setVisibleColumns(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      sessionStorage.setItem('shares_visibleCols', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
   const load = async () => {
     setLoading(true);
     try { const res = await api.get('/admin/shares'); if (res.data.code === 0) setItems(res.data.data || []); } catch {} finally { setLoading(false); }
@@ -197,15 +222,60 @@ export default function Shares() {
         </div>
       )}
 
+      {/* Column visibility config */}
+      {filtered.length > 1 && (
+        <div className="flex justify-end mb-2">
+          <div className="relative group">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path d="M12 3c4.97 0 9 4.03 9 9s-4.03 9-9 9-9-4.03-9-9 4.03-9 9-9zM3.6 9h16.8M3.6 15h16.8"/><path d="M12 3c-1.5 0-3 4-3 9s1.5 9 3 9 3-4 3-9-1.5-9-3-9z"/></svg>
+              列配置
+            </button>
+            <div className="absolute right-0 top-full mt-1 bg-[var(--background)] border border-[var(--border)] rounded-xl shadow-xl p-3 w-44 z-20 hidden group-hover:block">
+              <div className="space-y-1.5">
+                {columnDefs.filter(c => !c.fixed).map(col => (
+                  <label key={col.key} className="flex items-center gap-2 cursor-pointer text-xs text-[var(--foreground)] hover:text-[var(--primary)]">
+                    <input type="checkbox" checked={visibleColumns.has(col.key)} onChange={() => toggleColumn(col.key)}
+                      className="w-3.5 h-3.5 rounded border-[var(--border)] accent-[var(--primary)]" />
+                    {col.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .shares-scroll::-webkit-scrollbar { height: 6px; }
+        .shares-scroll::-webkit-scrollbar-track { background: transparent; }
+        .shares-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .shares-scroll::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+        .shares-shadow-left::after { content: ''; position: absolute; right: -8px; top: 0; bottom: 0; width: 8px; pointer-events: none; background: linear-gradient(to right, rgba(0,0,0,0.08), transparent); }
+        .shares-shadow-right::before { content: ''; position: absolute; left: -8px; top: 0; bottom: 0; width: 8px; pointer-events: none; background: linear-gradient(to left, rgba(0,0,0,0.08), transparent); }
+        .dark .shares-shadow-left::after { background: linear-gradient(to right, rgba(255,255,255,0.06), transparent); }
+        .dark .shares-shadow-right::before { background: linear-gradient(to left, rgba(255,255,255,0.06), transparent); }
+      `}</style>
+
       {/* Table */}
       <div className="border border-[var(--border)] rounded-2xl shadow-sm bg-[var(--card)]">
-        <div className="overflow-x-auto" style={{ overflowY: 'visible', maxHeight: 'calc(100vh - 320px)' }}>
+        <div className="shares-scroll overflow-x-auto" style={{ overflowY: 'visible', maxHeight: 'calc(100vh - 320px)' }}>
           {loading ? <div className="text-center py-12 text-[var(--muted-foreground)] text-sm">加载中...</div>
           : (
-            <table className="app-table">
+            <table className="app-table" style={{ minWidth: !visibleColumns.has('last_access') && !visibleColumns.has('ip') ? '1100px' : !visibleColumns.has('renew') ? '1200px' : '1300px' }}>
               <thead><tr>
-                <th className="w-10"></th>
-                <th>分享人</th><th>文件数</th><th>密码</th><th>状态</th><th>浏览</th><th>下载</th><th>最后访问</th><th>IP地址</th><th>有效期</th><th>分享时间</th><th>链接</th><th>操作</th>
+                <th className="sticky left-0 z-10 bg-[var(--card)] shares-shadow-left" style={{ width: 36 }}></th>
+                <th className="sticky left-[36px] z-10 bg-[var(--card)] shares-shadow-left text-left" style={{ width: 100, minWidth: 80 }}>分享人</th>
+                <th className="sticky left-[136px] z-10 bg-[var(--card)] shares-shadow-left" style={{ width: 64 }}>状态</th>
+                {visibleColumns.has('media_count') && <th style={{ width: 58 }}>文件</th>}
+                {visibleColumns.has('password') && <th style={{ width: 80 }}>密码</th>}
+                {visibleColumns.has('visit_count') && <th style={{ width: 48 }}>浏览</th>}
+                {visibleColumns.has('download_count') && <th style={{ width: 48 }}>下载</th>}
+                {visibleColumns.has('last_access') && <th style={{ width: 152 }}>最后访问</th>}
+                {visibleColumns.has('ip') && <th style={{ width: 130 }}>IP地址</th>}
+                {visibleColumns.has('expires_at') && <th style={{ width: 152 }}>有效期</th>}
+                {visibleColumns.has('created_at') && <th style={{ width: 152 }}>分享时间</th>}
+                <th style={{ width: 240, minWidth: 200 }}>链接</th>
+                <th className="sticky right-0 z-10 bg-[var(--card)] shares-shadow-right" style={{ width: 180, minWidth: 160 }}>操作</th>
               </tr></thead>
               <tbody>
                 {filtered.length === 0 ? (
@@ -214,53 +284,53 @@ export default function Shares() {
                   const isInactive = s.status === 'expired' || s.status === 'disabled';
                   return (
                   <tr key={s.id} className={`${isInactive ? 'opacity-50' : ''} cursor-pointer`} onDoubleClick={() => openDetail(s)}>
-                    <td onClick={e => e.stopPropagation()}>
+                    <td className="sticky left-0 z-10 bg-[var(--card)] shares-shadow-left" onClick={e => e.stopPropagation()}>
                       <input type="checkbox" checked={selected.has(s.id)} onChange={() => { const next = new Set(selected); next.has(s.id) ? next.delete(s.id) : next.add(s.id); setSelected(next); }}
                         className="w-4 h-4 rounded border-[var(--border)] accent-[var(--primary)]" />
                     </td>
-                    <td className="font-medium text-[var(--foreground)]">{s.user_name}</td>
-                    <td className="text-[var(--muted-foreground)]">{s.media_count} 个</td>
-                    <td>{s.password ? <span className="inline-flex items-center gap-1.5"><span className="font-mono text-xs">{showPassword === s.id ? s.password : '••••'}</span>
-                      <button onClick={e => { e.stopPropagation(); setShowPassword(showPassword === s.id ? null : s.id); }} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>{showPassword === s.id
+                    <td className="sticky left-[36px] z-10 bg-[var(--card)] shares-shadow-left font-medium text-[var(--foreground)] truncate max-w-[100px]" title={s.user_name}>{s.user_name}</td>
+                    <td className="sticky left-[136px] z-10 bg-[var(--card)] shares-shadow-left whitespace-nowrap"><span className="inline-block text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ color: statusColor(s.status), backgroundColor: statusBg(s.status) }}>{statusLabel(s.status)}</span></td>
+                    {visibleColumns.has('media_count') && <td className="text-center text-xs text-[var(--muted-foreground)] tabular-nums">{s.media_count}</td>}
+                    {visibleColumns.has('password') && <td className="whitespace-nowrap">{s.password ? <span className="inline-flex items-center gap-1"><span className="font-mono text-[11px]">{showPassword === s.id ? s.password : '••••'}</span>
+                      <button onClick={e => { e.stopPropagation(); setShowPassword(showPassword === s.id ? null : s.id); }} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] flex-shrink-0">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>{showPassword === s.id
                           ? <><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><path d="M1 1l22 22"/></>
                           : <><path d="M12 5c-7 0-11 7-11 7s4 7 11 7 11-7 11-7-4-7-11-7z"/><circle cx="12" cy="12" r="3"/></>}</svg>
-                      </button></span> : <span className="text-[var(--muted-foreground)]">无</span>}</td>
-                    <td><span className="inline-block text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ color: statusColor(s.status), backgroundColor: statusBg(s.status) }}>{statusLabel(s.status)}</span></td>
-                    <td className="text-xs text-[var(--muted-foreground)]">{s.visit_count || 0}</td>
-                    <td className="text-xs text-[var(--muted-foreground)]">{s.download_count || 0}</td>
-                    <td className="text-xs text-[var(--muted-foreground)]">{s.last_access_at ? s.last_access_at.split('.')[0].replace('T', ' ') : '-'}</td>
-                    <td className="text-xs font-mono text-[var(--muted-foreground)]">{s.ip_address || '-'}</td>
-                    <td className="text-xs text-[var(--muted-foreground)]">{s.expires_at ? new Date(s.expires_at).toLocaleString('zh-CN') : '-'}</td>
-                    <td className="text-xs text-[var(--muted-foreground)]">{s.created_at?.split('.')[0].replace('T', ' ')}</td>
-                    <td className="max-w-[130px]"><div className="flex items-center gap-1">
-                      <span className="text-xs font-mono truncate text-[var(--muted-foreground)]" title={`${window.location.origin}/shared/${s.token}`}>{window.location.origin}/shared/{s.token}</span>
-                      <button onClick={e => { e.stopPropagation(); copyText(`${window.location.origin}/shared/${s.token}`); }} className="flex-shrink-0 text-[var(--muted-foreground)] hover:text-[var(--primary)]" title="复制链接">
+                      </button></span> : <span className="text-[var(--muted-foreground)] text-xs">—</span>}</td>}
+                    {visibleColumns.has('visit_count') && <td className="text-center text-xs text-[var(--muted-foreground)] tabular-nums">{s.visit_count || 0}</td>}
+                    {visibleColumns.has('download_count') && <td className="text-center text-xs text-[var(--muted-foreground)] tabular-nums">{s.download_count || 0}</td>}
+                    {visibleColumns.has('last_access') && <td className="text-xs text-[var(--muted-foreground)] truncate max-w-[152px]" title={s.last_access_at ? s.last_access_at.split('.')[0].replace('T', ' ') : '-'}>{s.last_access_at ? s.last_access_at.split('.')[0].replace('T', ' ') : '-'}</td>}
+                    {visibleColumns.has('ip') && <td className="text-xs font-mono text-[var(--muted-foreground)] truncate max-w-[130px]" title={s.ip_address || '-'}>{s.ip_address || '-'}</td>}
+                    {visibleColumns.has('expires_at') && <td className="text-xs text-[var(--muted-foreground)] truncate max-w-[152px]" title={s.expires_at ? new Date(s.expires_at).toLocaleString('zh-CN') : '-'}>{s.expires_at ? new Date(s.expires_at).toLocaleString('zh-CN') : '-'}</td>}
+                    {visibleColumns.has('created_at') && <td className="text-xs text-[var(--muted-foreground)] truncate max-w-[152px]" title={s.created_at?.split('.')[0].replace('T', ' ')}>{s.created_at?.split('.')[0].replace('T', ' ')}</td>}
+                    <td className="max-w-[240px]"><div className="flex items-center gap-1">
+                      <span className="text-xs font-mono truncate text-[var(--muted-foreground)] flex-1 min-w-0" title={`${window.location.origin}/shared/${s.token}`}>{window.location.origin}/shared/{s.token}</span>
+                      <button onClick={e => { e.stopPropagation(); copyText(`${window.location.origin}/shared/${s.token}`); }} className="flex-shrink-0 text-[var(--muted-foreground)] hover:text-[var(--primary)] p-0.5" title="复制链接">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
                       </button>
                     </div></td>
-                    <td><div className="flex items-center gap-1">
-                      <button onClick={e => { e.stopPropagation(); copyText(`${window.location.origin}/shared/${s.token}`); }} className="text-[var(--muted-foreground)] hover:text-[var(--primary)]" title="复制链接">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); openDetail(s); }} className="text-[var(--muted-foreground)] hover:text-[var(--primary)]" title="查看详情">
+                    <td className="sticky right-0 z-10 bg-[var(--card)] shares-shadow-right"><div className="flex items-center gap-0.5 whitespace-nowrap">
+                      <button onClick={e => { e.stopPropagation(); openDetail(s); }} className="text-[var(--muted-foreground)] hover:text-[var(--primary)] p-1.5" title="查看详情">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg>
                       </button>
-                      {s.status === 'active' || s.status === 'expired' ? (
-                        <button onClick={e => { e.stopPropagation(); setRenewItem(s); }} className="text-[var(--muted-foreground)] hover:text-[var(--primary)]" title="续期">
+                      <button onClick={e => { e.stopPropagation(); copyText(`${window.location.origin}/shared/${s.token}`); }} className="text-[var(--muted-foreground)] hover:text-[var(--primary)] p-1.5" title="复制链接">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                      </button>
+                      {visibleColumns.has('renew') && (s.status === 'active' || s.status === 'expired') && (
+                        <button onClick={e => { e.stopPropagation(); setRenewItem(s); }} className="text-[var(--muted-foreground)] hover:text-[var(--primary)] p-1.5" title="续期">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
                         </button>
-                      ) : null}
+                      )}
                       {s.status !== 'disabled' ? (
-                        <button onClick={e => { e.stopPropagation(); toggleStatus(s); }} className="text-[var(--muted-foreground)] hover:text-[var(--destructive)]" title="失效">
+                        <button onClick={e => { e.stopPropagation(); toggleStatus(s); }} className="text-[var(--muted-foreground)] hover:text-[var(--destructive)] p-1.5" title="失效">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                         </button>
                       ) : (
-                        <button onClick={e => { e.stopPropagation(); toggleStatus(s); }} className="text-[var(--muted-foreground)] hover:text-[#34C759]" title="恢复">
+                        <button onClick={e => { e.stopPropagation(); toggleStatus(s); }} className="text-[var(--muted-foreground)] hover:text-[#34C759] p-1.5" title="恢复">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><path d="M12 14v4"/></svg>
                         </button>
                       )}
-                      <button onClick={e => { e.stopPropagation(); setConfirmDelete(s); }} className="text-[var(--muted-foreground)] hover:text-[var(--destructive)]" title="删除">
+                      <button onClick={e => { e.stopPropagation(); setConfirmDelete(s); }} className="text-[var(--muted-foreground)] hover:text-[var(--destructive)] p-1.5" title="删除">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                       </button>
                     </div></td>
