@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import type { WhitelistEntry, ChangeLog, PropertyFile } from '@/types';
 import ConfirmModal from '@/components/ConfirmModal';
 import PreviewModal from '@/components/PreviewModal';
+import { DataTable, type Column, type BatchAction, type TabFilter } from '@/components/DataTable';
 
 const statusLabels: Record<string, string> = { pending: '待注册', active: '已注册', registered: '已注册', disabled: '已禁用' };
 const statusColors: Record<string, string> = {
@@ -43,7 +44,6 @@ export default function Whitelist() {
   const [editForm, setEditForm] = useState({ name: '', id_card: '', phone: '', room: '', email: '', remark: '' });
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [selectAll, setSelectAll] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState<WhitelistEntry | null>(null);
   const [confirmBatchDelete, setConfirmBatchDelete] = useState(false);
@@ -110,11 +110,8 @@ export default function Whitelist() {
     const fd = new FormData(); fd.append('file', file);
     try {
       const res = await api.post('/admin/whitelist/import', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      if (res.data.code === 0 && res.data.data?.details) {
-        setImportResult(res.data.data);
-      } else {
-        toast.success(res.data.message || '导入成功');
-      }
+      if (res.data.code === 0 && res.data.data?.details) setImportResult(res.data.data);
+      else toast.success(res.data.message || '导入成功');
       load();
     } catch (err: any) { toast.error(err.response?.data?.message || '导入失败'); }
     e.target.value = '';
@@ -173,8 +170,7 @@ export default function Whitelist() {
   const uploadPropertyFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!detailItem || !e.target.files?.[0]) return;
     const fd = new FormData();
-    fd.append('property_file', e.target.files[0]);
-    fd.append('remark', '');
+    fd.append('property_file', e.target.files[0]); fd.append('remark', '');
     try {
       await api.post(`/admin/whitelist/${detailItem.id}/property-files`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       toast.success('已上传');
@@ -220,20 +216,11 @@ export default function Whitelist() {
     } catch { toast.error('删除失败'); }
   };
 
-  const toggleSelectAll = () => {
-    if (selectAll) { setSelectedIds([]); setSelectAll(false); }
-    else { setSelectedIds(filteredItems.map(i => i.id)); setSelectAll(true); }
-  };
-
-  const toggleSelect = (id: number) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
-
   const batchAction = async (action: string) => {
     if (selectedIds.length === 0) { toast.error('请选择记录'); return; }
     try {
       await api.post('/admin/whitelist/batch', { ids: selectedIds, action });
-      toast.success('操作成功'); setSelectedIds([]); setSelectAll(false); load();
+      toast.success('操作成功'); setSelectedIds([]); load();
     } catch (err: any) { toast.error(err.response?.data?.message || '操作失败'); }
   };
 
@@ -247,179 +234,148 @@ export default function Whitelist() {
     return c === 1 ? '1 套' : `${c} 套`;
   };
 
+  const tabFilters: TabFilter[] = [
+    { key: 'all', label: '全部' },
+    ...Object.entries(statusLabels).map(([k, v]) => ({ key: k, label: v })),
+  ];
+
+  const Svg = {
+    eye: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path d="M12 5c-7 0-11 7-11 7s4 7 11 7 11-7 11-7-4-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>,
+    eyeOff: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><path d="M1 1l22 22"/></svg>,
+    detail: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg>,
+    mail: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
+    disable: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path d="M10.68 13.31a16 16 0 003.55 2.37m-3.67-4.07a4 4 0 11-5.66-5.66m-1.42 8.49A5 5 0 002 14v2m0 0v4h4m-4-4h6m11.31-6.31a4 4 0 01-5.66 5.66M20 10a4 4 0 01-4 4"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+    enable: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><path d="M9 11l3 3L22 4"/><path d="M21 12v3a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h7"/></svg>,
+    trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
+  };
+
+  const columns: Column<WhitelistEntry>[] = [
+    { key: 'name', label: '姓名', width: 90, fixed: 'left',
+      render: (v) => <span className="text-xs font-medium text-[var(--foreground)]">{v}</span> },
+    { key: 'id_card', label: '身份证号', width: 160,
+      render: (v, row) => <span className="inline-flex items-center gap-1 text-xs font-mono">
+        <span className="truncate max-w-[120px]" title={showSensitive[row.id] ? v : maskIdCard(v)}>{showSensitive[row.id] ? v : maskIdCard(v)}</span>
+        <button onClick={e => { e.stopPropagation(); setShowSensitive(prev => ({...prev, [row.id]: !prev[row.id]})); }}
+          className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] flex-shrink-0">{showSensitive[row.id] ? Svg.eyeOff : Svg.eye}</button>
+      </span> },
+    { key: 'phone', label: '手机号', width: 120,
+      render: (v, row) => <span className="inline-flex items-center gap-1 text-xs font-mono">
+        <span>{showSensitive[row.id] ? v : maskPhone(v)}</span>
+        <button onClick={e => { e.stopPropagation(); setShowSensitive(prev => ({...prev, [row.id]: !prev[row.id]})); }}
+          className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] flex-shrink-0">{showSensitive[row.id] ? Svg.eyeOff : Svg.eye}</button>
+      </span> },
+    { key: 'room', label: '房号', width: 90, render: (v) => <span className="text-xs">{v}</span> },
+    { key: 'email', label: '邮箱', width: 160,
+      render: (v) => <span className="text-xs text-[var(--muted-foreground)] block truncate" title={v || '-'}>{v || '-'}</span> },
+    { key: 'property_count', label: '房产', width: 60, align: 'center',
+      render: (v, row) => <span className="text-xs text-[var(--muted-foreground)]">{formatCount(row as any)}</span> },
+    { key: 'status', label: '状态', width: 70,
+      render: (v) => <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-block whitespace-nowrap ${statusColors[v || 'pending']}`}>{statusLabels[v || 'pending']}</span> },
+    { key: 'actions', label: '操作', width: 160, fixed: 'right',
+      render: (_, row) => <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
+        <button onClick={() => openDetail(row)} title="详情" className="p-1 hover:bg-[var(--accent)] rounded text-[var(--muted-foreground)] hover:text-[var(--primary)]">{Svg.detail}</button>
+        {row.status !== 'registered' && (
+          <button onClick={() => sendRegisterLink(row.id)} title="发送注册链接" className="p-1 hover:bg-[var(--accent)] rounded text-[var(--primary)]">{Svg.mail}</button>
+        )}
+        {row.status === 'registered' ? (
+          <button onClick={() => setConfirmToggleStatus({ item: row, action: 'disable' })} title="禁用" className="p-1 hover:bg-[var(--accent)] rounded text-orange-500">{Svg.disable}</button>
+        ) : (
+          <button onClick={() => setConfirmToggleStatus({ item: row, action: 'enable' })} title="启用" className="p-1 hover:bg-[var(--accent)] rounded text-green-500">{Svg.enable}</button>
+        )}
+        <button onClick={() => setConfirmDelete(row)} title="删除" className="p-1 hover:bg-[var(--accent)] rounded text-[var(--destructive)]">{Svg.trash}</button>
+      </div> },
+  ];
+
+  const batchActionsDef: BatchAction[] = [
+    { key: 'enable', label: '批量启用', requireSelection: true, onClick: () => batchAction('enable') },
+    { key: 'disable', label: '批量禁用', requireSelection: true, onClick: () => batchAction('disable') },
+    { key: 'delete', label: '批量删除', variant: 'danger', requireSelection: true, onClick: () => setConfirmBatchDelete(true) },
+  ];
+
   return (<>
     <div>
       <h2 className="text-[var(--foreground)] text-xl font-bold tracking-tight mb-6">业主名册</h2>
-      <div className="border border-[var(--border)] rounded-2xl shadow-sm bg-[var(--card)]">
-        <div className="p-5 space-y-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${filter === 'all' ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-sm' : 'bg-[var(--muted)]/60 text-[var(--muted-foreground)]'}`}>全部</button>
-            {Object.entries(statusLabels).map(([k, v]) => (
-              <button key={k} onClick={() => setFilter(k)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${filter === k ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-sm' : 'bg-[var(--muted)]/60 text-[var(--muted-foreground)]'}`}>{v}</button>
-            ))}
-          </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <input type="text" placeholder="搜索姓名/房号/手机号/身份证..." value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
-            <select value={building} onChange={e => setBuilding(e.target.value)}
-              className="px-2 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none">
-              <option value="">全部楼栋</option>
-              {buildings.map(b => <option key={b} value={b}>{b}栋</option>)}
-            </select>
-            <label className="px-3 py-1.5 text-xs rounded-lg bg-[var(--muted)] text-[var(--foreground)] cursor-pointer hover:bg-[var(--accent)] font-medium">
-              导入CSV <input type="file" accept=".csv" className="hidden" onChange={handleImport} />
-            </label>
-            <button onClick={downloadTemplate}
-              className="px-3 py-1.5 text-xs rounded-lg bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)] font-medium">下载模板</button>
-            <button onClick={exportData}
-              className="px-3 py-1.5 text-xs rounded-lg bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)] font-medium">导出CSV</button>
-            <button onClick={() => setShowAdd(true)}
-              className="px-3 py-1.5 text-xs rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-medium">添加</button>
-          </div>
-
-          {showAdd && (
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[var(--border)]">
-              <input placeholder="姓名 *" value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
-              <input placeholder="身份证号 *" value={form.id_card} onChange={e => setForm(p => ({...p, id_card: e.target.value}))} maxLength={18}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
-              <input placeholder="手机号 *" value={form.phone} onChange={e => setForm(p => ({...p, phone: e.target.value}))} maxLength={11}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
-              <input placeholder="房号 *" value={form.room} onChange={e => setForm(p => ({...p, room: e.target.value}))}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
-              <input placeholder="邮箱" value={form.email} onChange={e => setForm(p => ({...p, email: e.target.value}))}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
-              <div className="flex gap-2">
-                <label className={`flex-1 border-2 border-dashed rounded-lg p-2 text-center cursor-pointer text-xs ${
-                  propertyFile ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]' : 'border-[var(--border)] text-[var(--muted-foreground)]'
-                }`}>
-                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => setPropertyFile(e.target.files?.[0] || null)} />
-                  {propertyFile ? propertyFile.name : '房产证明'}
-                </label>
-                <button onClick={() => setShowAdd(false)}
-                  className="px-4 py-2 text-xs rounded-lg bg-[var(--muted)] hover:bg-[var(--accent)]">取消</button>
-                <button onClick={handleAdd}
-                  className="px-4 py-2 text-xs rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">确认添加</button>
-            </div>
-          </div>
-          )}
-          {selectedIds.length > 0 && (
-            <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
-              <span className="text-xs text-[var(--muted-foreground)]">已选 {selectedIds.length} 条</span>
-              <button onClick={() => batchAction('enable')}
-                className="px-2 py-1 text-[10px] rounded bg-green-500 text-white font-medium">批量启用</button>
-              <button onClick={() => batchAction('disable')}
-                className="px-2 py-1 text-[10px] rounded bg-gray-500 text-white font-medium">批量禁用</button>
-              <button onClick={() => setConfirmBatchDelete(true)}
-                className="px-2 py-1 text-[10px] rounded bg-[var(--destructive)] text-white font-medium">批量删除</button>
-              <button onClick={() => { setSelectedIds([]); setSelectAll(false); }}
-                className="px-2 py-1 text-[10px] rounded bg-[var(--muted)] text-[var(--foreground)]">取消选择</button>
-            </div>
-          )}
-        </div>
-
-        <div className="overflow-x-auto border-t border-[var(--border)]">
-          {loading ? (
-            <div className="text-center py-12 text-[var(--muted-foreground)] text-sm">加载中...</div>
-          ) : filteredItems.length === 0 ? (
-            <div className="text-center py-12 text-[var(--muted-foreground)] text-sm">暂无数据</div>
-          ) : (
-            <table className="app-table">
-              <thead><tr>
-                <th className="w-10"><input type="checkbox" checked={selectAll} onChange={toggleSelectAll} className="rounded" /></th>
-                <th>姓名</th><th>身份证号</th><th>手机号</th><th>房号</th><th>邮箱</th><th>房产套数</th><th>状态</th><th>操作</th>
-              </tr></thead>
-              <tbody>
-                {filteredItems.map(item => (
-                  <tr key={item.id} onDoubleClick={() => openDetail(item)} className="cursor-pointer">
-                    <td onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleSelect(item.id)} className="rounded" /></td>
-                    <td className="font-medium">{item.name}</td>
-                    <td className="text-xs font-mono">
-                      <span className="flex items-center gap-1">
-                        {showSensitive[item.id] ? item.id_card : maskIdCard(item.id_card)}
-                        <button onClick={e => { e.stopPropagation(); setShowSensitive(prev => ({...prev, [item.id]: !prev[item.id]})); }}
-                          className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                            {showSensitive[item.id]
-                              ? <><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>
-                              : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
-                            }
-                          </svg>
-                        </button>
-                      </span>
-                    </td>
-                    <td className="text-xs font-mono">{showSensitive[item.id] ? item.phone : maskPhone(item.phone)}</td>
-                    <td>{item.room}</td>
-                    <td className="text-xs text-[var(--muted-foreground)]">{item.email || '-'}</td>
-                    <td className="text-xs">{formatCount(item)}</td>
-                    <td>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[item.status || 'pending']}`}>
-                        {statusLabels[item.status || 'pending']}
-                      </span>
-                    </td>
-                    <td onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => openDetail(item)} title="详情"
-                          className="p-1 hover:bg-[var(--accent)] rounded">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        </button>
-                        {item.status !== 'registered' && (
-                          <button onClick={() => sendRegisterLink(item.id)} title="发送注册链接"
-                            className="p-1 hover:bg-[var(--accent)] rounded text-[var(--primary)]">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                          </button>
-                        )}
-                        {item.status === 'registered' ? (
-                          <button onClick={() => setConfirmToggleStatus({ item, action: 'disable' })} title="禁用"
-                            className="p-1 hover:bg-[var(--accent)] rounded text-orange-500">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.68 13.31a16 16 0 003.55 2.37m-3.67-4.07a4 4 0 11-5.66-5.66m-1.42 8.49A5 5 0 002 14v2m0 0v4h4m-4-4h6m11.31-6.31a4 4 0 01-5.66 5.66M20 10a4 4 0 01-4 4"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                          </button>
-                        ) : (
-                          <button onClick={() => setConfirmToggleStatus({ item, action: 'enable' })} title="启用"
-                            className="p-1 hover:bg-[var(--accent)] rounded text-green-500">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M9 11l3 3L22 4"/><path d="M21 12v3a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h7"/></svg>
-                          </button>
-                        )}
-                        <button onClick={() => setConfirmDelete(item)} title="删除"
-                          className="p-1 hover:bg-[var(--accent)] rounded text-[var(--destructive)]">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 flex-wrap mb-5">
+        <label className="px-3 py-1.5 text-xs rounded-lg bg-[var(--muted)] text-[var(--foreground)] cursor-pointer hover:bg-[var(--accent)] font-medium">
+          导入CSV <input type="file" accept=".csv" className="hidden" onChange={handleImport} />
+        </label>
+        <button onClick={downloadTemplate}
+          className="px-3 py-1.5 text-xs rounded-lg bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)] font-medium">下载模板</button>
+        <button onClick={exportData}
+          className="px-3 py-1.5 text-xs rounded-lg bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)] font-medium">导出CSV</button>
+        <button onClick={() => setShowAdd(true)}
+          className="px-3 py-1.5 text-xs rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-medium">添加</button>
       </div>
+
+      {showAdd && (
+        <div className="grid grid-cols-2 gap-3 mb-5 p-4 border border-[var(--border)] rounded-2xl bg-[var(--card)]">
+          <input placeholder="姓名 *" value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))}
+            className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
+          <input placeholder="身份证号 *" value={form.id_card} onChange={e => setForm(p => ({...p, id_card: e.target.value}))} maxLength={18}
+            className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
+          <input placeholder="手机号 *" value={form.phone} onChange={e => setForm(p => ({...p, phone: e.target.value}))} maxLength={11}
+            className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
+          <input placeholder="房号 *" value={form.room} onChange={e => setForm(p => ({...p, room: e.target.value}))}
+            className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
+          <input placeholder="邮箱" value={form.email} onChange={e => setForm(p => ({...p, email: e.target.value}))}
+            className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-sm outline-none" />
+          <div className="flex gap-2">
+            <label className={`flex-1 border-2 border-dashed rounded-lg p-2 text-center cursor-pointer text-xs ${
+              propertyFile ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]' : 'border-[var(--border)] text-[var(--muted-foreground)]'
+            }`}>
+              <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => setPropertyFile(e.target.files?.[0] || null)} />
+              {propertyFile ? propertyFile.name : '房产证明'}
+            </label>
+            <button onClick={() => setShowAdd(false)} className="px-4 py-2 text-xs rounded-lg bg-[var(--muted)] hover:bg-[var(--accent)]">取消</button>
+            <button onClick={handleAdd} className="px-4 py-2 text-xs rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">确认添加</button>
+          </div>
+        </div>
+      )}
+
+      <DataTable<WhitelistEntry>
+        columns={columns}
+        data={filteredItems}
+        loading={loading}
+        selection="multi"
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+        onRowDoubleClick={openDetail}
+        tabFilters={tabFilters}
+        activeTab={filter}
+        onTabChange={(tab) => { setFilter(tab); setSelectedIds([]); }}
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="搜索姓名/房号/手机号/身份证..."
+        extraFilters={
+          <select value={building} onChange={e => { setBuilding(e.target.value); setSelectedIds([]); }}
+            className="px-2 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none">
+            <option value="">全部楼栋</option>
+            {buildings.map(b => <option key={b} value={b}>{b}栋</option>)}
+          </select>
+        }
+        batchActions={batchActionsDef}
+        columnConfigKey="whitelist_visibleCols"
+        minWidth={900}
+        emptyText="暂无数据"
+      />
 
       {detailItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-2 sm:p-4" onClick={() => { setDetailItem(null); }}>
           <div className="bg-[var(--background)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col mx-1" style={{ height: 'min(75vh, 520px)' }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] shrink-0">
               <h3 className="text-[var(--foreground)] text-base font-bold">{detailItem.name} - 业主详情</h3>
-              <button onClick={() => setDetailItem(null)} className="p-1 hover:bg-[var(--accent)] rounded-lg">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6L6 18M6 6l12 12"/></svg>
-              </button>
+              <button onClick={() => setDetailItem(null)} className="p-1 hover:bg-[var(--accent)] rounded-lg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
-
             <div className="flex flex-1 min-h-0">
               <nav className="w-36 flex-shrink-0 border-r border-[var(--border)] bg-[var(--muted)]/10 py-1 overflow-y-auto">
                 {(['info', 'property', 'changelog', 'approval'] as const).map(tab => (
                   <button key={tab} onClick={() => setDetailTab(tab)}
                     className={`relative w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] transition-colors text-left ${
-                      detailTab === tab
-                        ? 'text-[var(--primary)] font-medium bg-[var(--primary)]/[0.04]'
-                        : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]/30'
+                      detailTab === tab ? 'text-[var(--primary)] font-medium bg-[var(--primary)]/[0.04]' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]/30'
                     }`}>
-                    {detailTab === tab && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-[var(--primary)] rounded-r-full" />
-                    )}
+                    {detailTab === tab && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-[var(--primary)] rounded-r-full" />}
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="flex-shrink-0">
                       {tab === 'info' ? <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /> :
                        tab === 'property' ? <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /> :
@@ -430,78 +386,50 @@ export default function Whitelist() {
                   </button>
                 ))}
               </nav>
-
               <div className="flex-1 overflow-y-auto min-h-0 p-3">
               {detailTab === 'info' && (
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs text-[var(--muted-foreground)]">姓名</label>
+                    <div><label className="text-xs text-[var(--muted-foreground)]">姓名</label>
                       <input value={editForm.name} onChange={e => setEditForm(p => ({...p, name: e.target.value}))}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-[var(--muted-foreground)]">房号</label>
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" /></div>
+                    <div><label className="text-xs text-[var(--muted-foreground)]">房号</label>
                       <input value={editForm.room} onChange={e => setEditForm(p => ({...p, room: e.target.value}))}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-[var(--muted-foreground)]">身份证号</label>
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" /></div>
+                    <div><label className="text-xs text-[var(--muted-foreground)]">身份证号</label>
                       <input value={editForm.id_card} onChange={e => setEditForm(p => ({...p, id_card: e.target.value}))} maxLength={18}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-[var(--muted-foreground)]">手机号</label>
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" /></div>
+                    <div><label className="text-xs text-[var(--muted-foreground)]">手机号</label>
                       <input value={editForm.phone} onChange={e => setEditForm(p => ({...p, phone: e.target.value}))} maxLength={11}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-[var(--muted-foreground)]">邮箱</label>
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" /></div>
+                    <div><label className="text-xs text-[var(--muted-foreground)]">邮箱</label>
                       <input value={editForm.email} onChange={e => setEditForm(p => ({...p, email: e.target.value}))}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-[var(--muted-foreground)]">备注</label>
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" /></div>
+                    <div><label className="text-xs text-[var(--muted-foreground)]">备注</label>
                       <input value={editForm.remark} onChange={e => setEditForm(p => ({...p, remark: e.target.value}))}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" />
-                    </div>
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] text-xs outline-none" /></div>
                   </div>
-
                   <div className="flex items-center gap-4 flex-wrap py-2 px-2.5 rounded-lg bg-[var(--muted)]/20">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-[var(--muted-foreground)]">注册状态</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium inline-block ${statusColors[detailItem.status || 'pending']}`}>
-                        {statusLabels[detailItem.status || 'pending']}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-[var(--muted-foreground)]">添加时间</span>
-                      <span className="text-xs font-medium">{detailItem.created_at || '-'}</span>
-                    </div>
+                    <div className="flex items-center gap-1.5"><span className="text-xs text-[var(--muted-foreground)]">注册状态</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium inline-block ${statusColors[detailItem.status || 'pending']}`}>{statusLabels[detailItem.status || 'pending']}</span></div>
+                    <div className="flex items-center gap-1.5"><span className="text-xs text-[var(--muted-foreground)]">添加时间</span>
+                      <span className="text-xs font-medium">{detailItem.created_at || '-'}</span></div>
                   </div>
-
                   <div className="flex gap-1.5 flex-wrap">
-                    <button onClick={() => setConfirmDetailSave(true)}
-                      className="px-3 py-1.5 text-xs rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-medium">保存修改</button>
+                    <button onClick={() => setConfirmDetailSave(true)} className="px-3 py-1.5 text-xs rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-medium">保存修改</button>
                     {detailItem.status !== 'registered' && (
-                      <button onClick={() => sendRegisterLink(detailItem.id)}
-                        className="px-3 py-1.5 text-xs rounded-lg bg-blue-500 text-white font-medium">发送注册链接</button>
+                      <button onClick={() => sendRegisterLink(detailItem.id)} className="px-3 py-1.5 text-xs rounded-lg bg-blue-500 text-white font-medium">发送注册链接</button>
                     )}
                     {detailItem.status === 'registered' ? (
-                      <button onClick={() => setConfirmToggleStatus({ item: detailItem, action: 'disable' })}
-                        className="px-3 py-1.5 text-xs rounded-lg bg-orange-500 text-white font-medium">禁用账号</button>
+                      <button onClick={() => setConfirmToggleStatus({ item: detailItem, action: 'disable' })} className="px-3 py-1.5 text-xs rounded-lg bg-orange-500 text-white font-medium">禁用账号</button>
                     ) : (
-                      <button onClick={() => setConfirmToggleStatus({ item: detailItem, action: 'enable' })}
-                        className="px-3 py-1.5 text-xs rounded-lg bg-green-500 text-white font-medium">启用账号</button>
+                      <button onClick={() => setConfirmToggleStatus({ item: detailItem, action: 'enable' })} className="px-3 py-1.5 text-xs rounded-lg bg-green-500 text-white font-medium">启用账号</button>
                     )}
-                    <button onClick={() => setConfirmDetailDelete(detailItem)}
-                      className="px-3 py-1.5 text-xs rounded-lg bg-[var(--destructive)] text-white font-medium">删除业主</button>
-                    <button onClick={() => { setDetailItem(null); }}
-                      className="px-3 py-1.5 text-xs rounded-lg bg-[var(--muted)] text-[var(--foreground)]">关闭</button>
+                    <button onClick={() => setConfirmDetailDelete(detailItem)} className="px-3 py-1.5 text-xs rounded-lg bg-[var(--destructive)] text-white font-medium">删除业主</button>
+                    <button onClick={() => { setDetailItem(null); }} className="px-3 py-1.5 text-xs rounded-lg bg-[var(--muted)] text-[var(--foreground)]">关闭</button>
                   </div>
                 </div>
               )}
-
               {detailTab === 'property' && (
                 <div className="space-y-2">
                   {ownerProperties.length === 0 ? (
@@ -513,18 +441,14 @@ export default function Whitelist() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs font-semibold text-[var(--foreground)]">{prop.room}</span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[prop.status]}`}>
-                                {statusLabels[prop.status] || prop.status}
-                              </span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[prop.status]}`}>{statusLabels[prop.status] || prop.status}</span>
                             </div>
                           </div>
                           {prop.co_owners.length > 0 && (
                             <div className="mt-1.5 flex flex-wrap gap-1">
                               <span className="text-[10px] text-[var(--muted-foreground)]">共有人:</span>
                               {prop.co_owners.map(co => (
-                                <span key={co.id} className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--primary)]/10 text-[var(--primary)]">
-                                  {co.name} ({co.room})
-                                </span>
+                                <span key={co.id} className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--primary)]/10 text-[var(--primary)]">{co.name} ({co.room})</span>
                               ))}
                             </div>
                           )}
@@ -545,9 +469,7 @@ export default function Whitelist() {
                                     ) : (
                                       <div className="w-full h-20 flex items-center justify-center bg-[var(--muted)] text-xs text-[var(--muted-foreground)]">{doc.original_name}</div>
                                     )}
-                                    <div className="px-1.5 py-0.5">
-                                      <div className="text-[10px] truncate">{doc.original_name}</div>
-                                    </div>
+                                    <div className="px-1.5 py-0.5"><div className="text-[10px] truncate">{doc.original_name}</div></div>
                                     <button onClick={() => deletePropertyFile(doc.id)}
                                       className="absolute top-1 right-1 p-0.5 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
                                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -568,7 +490,6 @@ export default function Whitelist() {
                   </div>
                 </div>
               )}
-
               {detailTab === 'changelog' && (
                 <div className="space-y-1.5">
                   {changeLogs.length === 0 ? (
@@ -578,10 +499,7 @@ export default function Whitelist() {
                       <div key={log.id} className="flex items-start gap-2 p-2 rounded-lg bg-[var(--muted)]/30 border border-[var(--border)]">
                         <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] mt-1 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-medium">{log.field}</span>
-                            <span className="text-[10px] text-[var(--muted-foreground)]">{log.created_at}</span>
-                          </div>
+                          <div className="flex items-center gap-1.5"><span className="text-xs font-medium">{log.field}</span><span className="text-[10px] text-[var(--muted-foreground)]">{log.created_at}</span></div>
                           {log.old_value && <div className="text-[10px] text-[var(--destructive)] line-through mt-0.5">{log.old_value}</div>}
                           {log.new_value && <div className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">{log.new_value}</div>}
                           {log.operator_name && <div className="text-[10px] text-[var(--muted-foreground)] mt-0.5">操作人: {log.operator_name}</div>}
@@ -591,7 +509,6 @@ export default function Whitelist() {
                   )}
                 </div>
               )}
-
               {detailTab === 'approval' && (
                 <div className="space-y-1.5">
                   {changeLogs.filter(l => l.target_type === 'approval').length === 0 ? (
@@ -601,10 +518,7 @@ export default function Whitelist() {
                       <div key={log.id} className="flex items-start gap-2 p-2 rounded-lg bg-[var(--muted)]/30 border border-[var(--border)]">
                         <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-medium">{log.field === 'status' ? '审核状态变更' : log.field}</span>
-                            <span className="text-[10px] text-[var(--muted-foreground)]">{log.created_at}</span>
-                          </div>
+                          <div className="flex items-center gap-1.5"><span className="text-xs font-medium">{log.field === 'status' ? '审核状态变更' : log.field}</span><span className="text-[10px] text-[var(--muted-foreground)]">{log.created_at}</span></div>
                           {log.old_value && <div className="text-[10px] text-[var(--muted-foreground)] mt-0.5">从: {log.old_value}</div>}
                           {log.new_value && <div className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">到: {log.new_value}</div>}
                           {log.operator_name && <div className="text-[10px] text-[var(--muted-foreground)] mt-0.5">审核人: {log.operator_name}</div>}
@@ -641,8 +555,7 @@ export default function Whitelist() {
               )}
             </div>
             <div className="px-5 py-3 border-t border-[var(--border)] flex justify-end">
-              <button onClick={() => setImportResult(null)}
-                className="px-4 py-2 text-xs rounded-lg bg-[var(--muted)] text-[var(--foreground)]">关闭</button>
+              <button onClick={() => setImportResult(null)} className="px-4 py-2 text-xs rounded-lg bg-[var(--muted)] text-[var(--foreground)]">关闭</button>
             </div>
           </div>
         </div>
